@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XAUUSD · Agent Council · SGT</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:#0d0d0f; --ink2:#141417; --ink3:#1c1c21; --ink4:#252529;
+  --gold:#C9A84C; --gold-bright:#F2CC6B; --gold-dim:#6b5520;
+  --wire:rgba(201,168,76,0.13); --wire2:rgba(201,168,76,0.3);
+  --text:#eceae3; --text-mid:#9a9790; --text-dim:#56544f;
+  --green:#2dce7e; --red:#e8504a; --blue:#5b9cf6; --amber:#f0a324;
+  --purple:#9f7aea;
+  --r:8px;
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'IBM Plex Sans',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--sans);background:var(--ink);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+/* GRID TEXTURE */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(201,168,76,0.025) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(201,168,76,0.025) 1px,transparent 1px);
+  background-size:32px 32px;}
+
+.wrap{position:relative;z-index:1;max-width:1300px;margin:0 auto;padding:0 24px 80px;}
+
+/* LOADER */
+.loader{position:fixed;inset:0;background:var(--ink);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity 0.7s;}
+.loader.gone{opacity:0;pointer-events:none;}
+.loader-ring{width:48px;height:48px;border:2px solid var(--gold-dim);border-top-color:var(--gold-bright);border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-txt{font-family:var(--mono);font-size:12px;color:var(--text-mid);letter-spacing:.15em;}
+
+/* FADE */
+.fade-in{opacity:0;animation:fi 0.6s ease 2.1s forwards;}
+@keyframes fi{to{opacity:1}}
+
+/* ── HEADER ── */
+header{padding:28px 0 22px;border-bottom:1px solid var(--wire);margin-bottom:32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.hdr-left{display:flex;align-items:center;gap:14px;}
+.logo-mark{width:44px;height:44px;border:1px solid var(--wire2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--gold-bright);letter-spacing:.05em;}
+.hdr-title{font-size:18px;font-weight:600;letter-spacing:-.3px;}
+.hdr-title span{color:var(--gold);}
+.hdr-sub{font-size:11px;font-family:var(--mono);color:var(--text-dim);margin-top:2px;letter-spacing:.08em;}
+.hdr-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.clock-blk{text-align:right;}
+.clock-val{font-family:var(--mono);font-size:16px;color:var(--gold-bright);font-weight:700;}
+.clock-lbl{font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:2px;}
+.run-btn{display:flex;align-items:center;gap:7px;padding:9px 18px;background:var(--gold);border:none;border-radius:var(--r);color:var(--ink);font-family:var(--sans);font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.02em;}
+.run-btn:hover{background:var(--gold-bright);}
+.run-btn:disabled{opacity:.5;cursor:not-allowed;}
+.run-btn svg{flex-shrink:0;}
+
+/* ── AGENT GRID ── */
+.agent-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+@media(max-width:980px){.agent-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:560px){.agent-grid{grid-template-columns:1fr;}}
+
+/* ── AGENT CARD ── */
+.agent-card{background:var(--ink2);border:1px solid var(--wire);border-radius:var(--r);overflow:hidden;transition:border-color .3s;}
+.agent-card.running{border-color:var(--gold-dim);animation:cardPulse 1.5s ease infinite;}
+.agent-card.done-buy{border-color:rgba(45,206,126,.35);}
+.agent-card.done-sell{border-color:rgba(232,80,74,.35);}
+.agent-card.done-out{border-color:rgba(90,147,246,.35);}
+@keyframes cardPulse{0%,100%{border-color:var(--gold-dim)}50%{border-color:var(--gold-bright)}}
+
+.agent-header{padding:14px 16px 12px;border-bottom:1px solid var(--wire);display:flex;align-items:flex-start;gap:10px;}
+.agent-icon{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.agent-meta{}
+.agent-name{font-size:12px;font-weight:600;letter-spacing:.02em;}
+.agent-role{font-size:10px;font-family:var(--mono);color:var(--text-dim);margin-top:2px;}
+.agent-status{margin-left:auto;font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;white-space:nowrap;}
+.agent-status.idle{background:var(--ink4);color:var(--text-dim);}
+.agent-status.running{background:rgba(201,168,76,.15);color:var(--gold);}
+.agent-status.done{background:rgba(45,206,126,.12);color:var(--green);}
+
+.agent-body{padding:14px 16px;}
+.agent-thinking{font-family:var(--mono);font-size:11px;color:var(--text-dim);line-height:1.6;min-height:80px;}
+.agent-thinking .cursor{display:inline-block;width:7px;height:12px;background:var(--gold);margin-left:2px;animation:blink .8s step-end infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+.agent-verdict{margin-top:12px;padding:10px 12px;border-radius:6px;font-family:var(--mono);font-size:11px;display:none;}
+.agent-verdict.buy{background:rgba(45,206,126,.1);border:1px solid rgba(45,206,126,.2);}
+.agent-verdict.sell{background:rgba(232,80,74,.1);border:1px solid rgba(232,80,74,.2);}
+.agent-verdict.out{background:rgba(90,147,246,.1);border:1px solid rgba(90,147,246,.2);}
+.verdict-dir{font-size:14px;font-weight:700;margin-bottom:4px;}
+.verdict-dir.buy{color:var(--green);}
+.verdict-dir.sell{color:var(--red);}
+.verdict-dir.out{color:var(--blue);}
+.verdict-conf{font-size:10px;color:var(--text-mid);}
+
+.agent-signal{display:flex;gap:3px;margin-top:10px;}
+.sig-pip{height:4px;flex:1;border-radius:2px;background:var(--ink4);}
+.sig-pip.on-buy{background:var(--green);}
+.sig-pip.on-sell{background:var(--red);}
+.sig-pip.on-out{background:var(--blue);}
+
+/* ── DEBATE ── */
+.debate-section{background:var(--ink2);border:1px solid var(--wire);border-radius:var(--r);padding:20px 22px;margin-bottom:20px;}
+.debate-title{font-size:11px;font-family:var(--mono);color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+.debate-title::after{content:'';flex:1;height:1px;background:var(--wire);}
+.debate-log{display:flex;flex-direction:column;gap:10px;min-height:60px;}
+.debate-msg{display:flex;gap:10px;align-items:flex-start;}
+.debate-avatar{width:24px;height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:1px;}
+.debate-bubble{background:var(--ink3);border:1px solid var(--wire);border-radius:6px;padding:8px 12px;font-family:var(--mono);font-size:11px;color:var(--text-mid);line-height:1.6;flex:1;}
+.debate-bubble strong{color:var(--text);}
+.debate-empty{font-family:var(--mono);font-size:11px;color:var(--text-dim);text-align:center;padding:20px 0;}
+
+/* ── FINAL VERDICT ── */
+.verdict-section{border-radius:var(--r);overflow:hidden;margin-bottom:20px;border:1px solid var(--wire);}
+.verdict-header{padding:18px 22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.verdict-header.buy{background:linear-gradient(135deg,rgba(45,206,126,.12),rgba(45,206,126,.04));}
+.verdict-header.sell{background:linear-gradient(135deg,rgba(232,80,74,.12),rgba(232,80,74,.04));}
+.verdict-header.out{background:linear-gradient(135deg,rgba(90,147,246,.12),rgba(90,147,246,.04));}
+.verdict-header.pending{background:var(--ink2);}
+.verdict-big{font-size:36px;font-weight:700;letter-spacing:-1px;}
+.verdict-big.buy{color:var(--green);}
+.verdict-big.sell{color:var(--red);}
+.verdict-big.out{color:var(--blue);}
+.verdict-big.pending{color:var(--text-dim);}
+.verdict-sub{font-family:var(--mono);font-size:11px;color:var(--text-mid);margin-top:4px;}
+.verdict-confidence{text-align:right;}
+.conf-label{font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:4px;}
+.conf-val{font-size:28px;font-weight:700;color:var(--gold-bright);}
+.conf-bar-wrap{display:flex;gap:3px;margin-top:6px;}
+.conf-bar-seg{height:4px;width:20px;border-radius:2px;background:var(--ink4);}
+.conf-bar-seg.on{background:var(--gold);}
+
+.verdict-body{background:var(--ink2);border-top:1px solid var(--wire);}
+.verdict-cols{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--wire);}
+@media(max-width:700px){.verdict-cols{grid-template-columns:1fr;}}
+.verdict-col{padding:18px 20px;border-right:1px solid var(--wire);}
+.verdict-col:last-child{border-right:none;}
+.vc-lbl{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;}
+.vc-entry{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--gold-bright);}
+.vc-sl{font-family:var(--mono);font-size:14px;color:var(--red);margin-top:4px;}
+.vc-tp{font-family:var(--mono);font-size:14px;color:var(--green);margin-top:2px;}
+.vc-note{font-size:11px;color:var(--text-dim);margin-top:6px;line-height:1.5;}
+
+.verdict-reasoning{padding:18px 20px;}
+.vr-lbl{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;}
+.vr-text{font-size:13px;color:var(--text-mid);line-height:1.8;}
+.vr-text.pending-txt{color:var(--text-dim);font-family:var(--mono);font-size:11px;}
+
+/* ── BRIEFING ── */
+.briefing-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:20px;}
+@media(max-width:800px){.briefing-grid{grid-template-columns:1fr;}}
+.brief-card{background:var(--ink2);border:1px solid var(--wire);border-radius:var(--r);padding:18px 20px;}
+.brief-ttl{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;}
+.brief-line{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--wire);font-size:12px;}
+.brief-line:last-child{border-bottom:none;}
+.brief-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.brief-dot.b{background:var(--green);}
+.brief-dot.s{background:var(--red);}
+.brief-dot.n{background:var(--amber);}
+.brief-dot.i{background:var(--blue);}
+.brief-key{color:var(--text-mid);min-width:90px;font-family:var(--mono);}
+.brief-val{color:var(--text);flex:1;}
+
+/* score */
+.score-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.score-cell{background:var(--ink3);border-radius:6px;padding:10px 12px;border:1px solid var(--wire);}
+.score-agent{font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:4px;}
+.score-dir{font-size:13px;font-weight:700;}
+.score-dir.buy{color:var(--green);}
+.score-dir.sell{color:var(--red);}
+.score-dir.out{color:var(--blue);}
+.score-conf{font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:2px;}
+
+/* live dot */
+.live{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:var(--green);}
+.live::before{content:'';display:inline-block;width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 1.2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── FOOTER ── */
+footer{border-top:1px solid var(--wire);padding-top:18px;font-family:var(--mono);font-size:10px;color:var(--text-dim);text-align:center;line-height:1.9;letter-spacing:.05em;}
+
+/* scrollbar */
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:var(--ink);}
+::-webkit-scrollbar-thumb{background:var(--ink4);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<div class="loader" id="loader">
+  <div class="loader-ring"></div>
+  <div class="loader-txt">INITIALISING AGENT COUNCIL · SGT</div>
+</div>
+
+<div class="wrap fade-in">
+
+  <!-- HEADER -->
+  <header>
+    <div class="hdr-left">
+      <div class="logo-mark">AU</div>
+      <div>
+        <div class="hdr-title">XAUUSD <span>Agent Council</span></div>
+        <div class="hdr-sub">ASIA OPEN MORNING BRIEF · SGT (UTC+8)</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div class="clock-blk">
+        <div class="clock-val" id="sgt-clk">--:--:-- SGT</div>
+        <div class="clock-lbl">Singapore Time · <span id="sgt-date">--</span></div>
+      </div>
+      <button class="run-btn" id="run-btn" onclick="runCouncil()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        Run Agent Council
+      </button>
+    </div>
+  </header>
+
+  <!-- PRICE BAR -->
+  <div style="background:var(--ink2);border:1px solid var(--wire);border-radius:var(--r);padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+      <div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:3px;">XAU/USD SPOT</div>
+        <div style="font-size:26px;font-weight:700;color:var(--gold-bright);" id="px-main">$-.--</div>
+      </div>
+      <span id="px-chg" style="font-family:var(--mono);font-size:13px;padding:4px 10px;border-radius:5px;background:var(--ink4);color:var(--text-mid);">...</span>
+    </div>
+    <div style="display:flex;gap:28px;flex-wrap:wrap;">
+      <div style="text-align:right;"><div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);">High</div><div style="font-family:var(--mono);font-size:13px;font-weight:600;" id="px-hi">--</div></div>
+      <div style="text-align:right;"><div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);">Low</div><div style="font-family:var(--mono);font-size:13px;font-weight:600;" id="px-lo">--</div></div>
+      <div style="text-align:right;"><div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);">Range</div><div style="font-family:var(--mono);font-size:13px;font-weight:600;" id="px-rng">--</div></div>
+      <div style="text-align:right;"><div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);">Tick (SGT)</div><div class="live" id="px-tick">--</div></div>
+    </div>
+  </div>
+
+  <!-- AGENT CARDS -->
+  <div class="agent-grid" id="agent-grid">
+
+    <!-- Agent 1: Price Action -->
+    <div class="agent-card" id="card-pa">
+      <div class="agent-header">
+        <div class="agent-icon" style="background:rgba(201,168,76,.12);">📈</div>
+        <div class="agent-meta">
+          <div class="agent-name">PRICE ACTION</div>
+          <div class="agent-role">Trend · S&R · Engulf</div>
+        </div>
+        <div class="agent-status idle" id="st-pa">IDLE</div>
+      </div>
+      <div class="agent-body">
+        <div class="agent-thinking" id="th-pa">Waiting to run...</div>
+        <div class="agent-signal" id="sig-pa">
+          <div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div>
+        </div>
+        <div class="agent-verdict" id="vd-pa">
+          <div class="verdict-dir" id="vd-pa-dir">--</div>
+          <div class="verdict-conf" id="vd-pa-conf">Confidence: --%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Agent 2: News & Fundamentals -->
+    <div class="agent-card" id="card-nf">
+      <div class="agent-header">
+        <div class="agent-icon" style="background:rgba(90,147,246,.12);">📰</div>
+        <div class="agent-meta">
+          <div class="agent-name">NEWS & MACRO</div>
+          <div class="agent-role">Events · DXY · Sentiment</div>
+        </div>
+        <div class="agent-status idle" id="st-nf">IDLE</div>
+      </div>
+      <div class="agent-body">
+        <div class="agent-thinking" id="th-nf">Waiting to run...</div>
+        <div class="agent-signal" id="sig-nf">
+          <div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div>
+        </div>
+        <div class="agent-verdict" id="vd-nf">
+          <div class="verdict-dir" id="vd-nf-dir">--</div>
+          <div class="verdict-conf" id="vd-nf-conf">Confidence: --%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Agent 3: Risk & Sizing -->
+    <div class="agent-card" id="card-rk">
+      <div class="agent-header">
+        <div class="agent-icon" style="background:rgba(232,80,74,.12);">🛡️</div>
+        <div class="agent-meta">
+          <div class="agent-name">RISK MANAGER</div>
+          <div class="agent-role">SL · TP · Position size</div>
+        </div>
+        <div class="agent-status idle" id="st-rk">IDLE</div>
+      </div>
+      <div class="agent-body">
+        <div class="agent-thinking" id="th-rk">Waiting to run...</div>
+        <div class="agent-signal" id="sig-rk">
+          <div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div>
+        </div>
+        <div class="agent-verdict" id="vd-rk">
+          <div class="verdict-dir" id="vd-rk-dir">--</div>
+          <div class="verdict-conf" id="vd-rk-conf">Confidence: --%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Agent 4: Session & Timing -->
+    <div class="agent-card" id="card-tm">
+      <div class="agent-header">
+        <div class="agent-icon" style="background:rgba(159,122,234,.12);">⏱️</div>
+        <div class="agent-meta">
+          <div class="agent-name">SESSION TIMER</div>
+          <div class="agent-role">Timing · Volatility · Window</div>
+        </div>
+        <div class="agent-status idle" id="st-tm">IDLE</div>
+      </div>
+      <div class="agent-body">
+        <div class="agent-thinking" id="th-tm">Waiting to run...</div>
+        <div class="agent-signal" id="sig-tm">
+          <div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div>
+        </div>
+        <div class="agent-verdict" id="vd-tm">
+          <div class="verdict-dir" id="vd-tm-dir">--</div>
+          <div class="verdict-conf" id="vd-tm-conf">Confidence: --%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENT DEBATE -->
+  <div class="debate-section">
+    <div class="debate-title">Agent debate</div>
+    <div class="debate-log" id="debate-log">
+      <div class="debate-empty">Agents will debate their findings here after running.</div>
+    </div>
+  </div>
+
+  <!-- FINAL VERDICT -->
+  <div class="verdict-section" id="verdict-section">
+    <div class="verdict-header pending" id="vh">
+      <div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:.1em;margin-bottom:6px;">COUNCIL VERDICT</div>
+        <div class="verdict-big pending" id="v-big">AWAITING AGENTS</div>
+        <div class="verdict-sub" id="v-sub">Run the council to generate today's trade decision</div>
+      </div>
+      <div class="verdict-confidence">
+        <div class="conf-label">CONSENSUS</div>
+        <div class="conf-val" id="v-conf">--%</div>
+        <div class="conf-bar-wrap" id="v-conf-bar">
+          <div class="conf-bar-seg"></div><div class="conf-bar-seg"></div><div class="conf-bar-seg"></div>
+          <div class="conf-bar-seg"></div><div class="conf-bar-seg"></div><div class="conf-bar-seg"></div>
+          <div class="conf-bar-seg"></div><div class="conf-bar-seg"></div><div class="conf-bar-seg"></div><div class="conf-bar-seg"></div>
+        </div>
+      </div>
+    </div>
+    <div class="verdict-body">
+      <div class="verdict-cols" id="v-cols">
+        <div class="verdict-col">
+          <div class="vc-lbl">Suggested entry</div>
+          <div class="vc-entry" id="vc-entry">--</div>
+          <div class="vc-note" id="vc-entry-note">Awaiting council verdict</div>
+        </div>
+        <div class="verdict-col">
+          <div class="vc-lbl">Stop loss · max 20pts</div>
+          <div class="vc-sl" id="vc-sl">--</div>
+          <div class="vc-tp" id="vc-tp">--</div>
+          <div class="vc-note" id="vc-rr">RR: --</div>
+        </div>
+        <div class="verdict-col">
+          <div class="vc-lbl">Position size (1% risk · $10k)</div>
+          <div class="vc-entry" id="vc-lots">--</div>
+          <div class="vc-note" id="vc-lots-note">Adjust in position sizer on main dashboard</div>
+        </div>
+      </div>
+      <div class="verdict-reasoning">
+        <div class="vr-lbl">Council reasoning</div>
+        <div class="vr-text pending-txt" id="v-reasoning">The four agents will analyse price action, news, risk parameters, and session timing before debating and producing a unified recommendation here.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MORNING BRIEFING -->
+  <div class="briefing-grid">
+    <div class="brief-card">
+      <div class="brief-ttl">Full morning briefing</div>
+      <div id="brief-lines">
+        <div class="brief-line"><div class="brief-dot i"></div><span class="brief-key">Status</span><span class="brief-val">Run the Agent Council to generate today's briefing.</span></div>
+      </div>
+    </div>
+    <div class="brief-card">
+      <div class="brief-ttl">Agent score summary</div>
+      <div class="score-grid" id="score-grid">
+        <div class="score-cell"><div class="score-agent">PRICE ACTION</div><div class="score-dir" style="color:var(--text-dim);">--</div><div class="score-conf">Confidence: --%</div></div>
+        <div class="score-cell"><div class="score-agent">NEWS & MACRO</div><div class="score-dir" style="color:var(--text-dim);">--</div><div class="score-conf">Confidence: --%</div></div>
+        <div class="score-cell"><div class="score-agent">RISK MANAGER</div><div class="score-dir" style="color:var(--text-dim);">--</div><div class="score-conf">Confidence: --%</div></div>
+        <div class="score-cell"><div class="score-agent">SESSION TIMER</div><div class="score-dir" style="color:var(--text-dim);">--</div><div class="score-conf">Confidence: --%</div></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    XAUUSD AGENT COUNCIL · SINGAPORE TIME (SGT · UTC+8)<br>
+    Powered by Claude AI · gold-api.com live price feed · Not financial advice<br>
+    <span id="ft-time"></span>
+  </footer>
+</div>
+
+<script>
+// ── UTILS ──────────────────────────────────────────────────────────
+const $=id=>document.getElementById(id);
+const nowSGT=()=>new Date(Date.now()+8*3600*1000);
+const pad=n=>String(Math.floor(Math.abs(n))).padStart(2,'0');
+const fmt=n=>(!isNaN(n)&&n!=null)?Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'--';
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+// ── LOADER ─────────────────────────────────────────────────────────
+setTimeout(()=>$('loader').classList.add('gone'),2200);
+
+// ── SGT CLOCK ──────────────────────────────────────────────────────
+const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function tickClock(){
+  const s=nowSGT();
+  $('sgt-clk').textContent=pad(s.getUTCHours())+':'+pad(s.getUTCMinutes())+':'+pad(s.getUTCSeconds())+' SGT';
+  $('sgt-date').textContent=DAYS[s.getUTCDay()]+' '+s.getUTCDate()+'/'+(s.getUTCMonth()+1)+'/'+s.getUTCFullYear();
+  $('ft-time').textContent='Last run: '+DAYS[s.getUTCDay()]+' '+pad(s.getUTCHours())+':'+pad(s.getUTCMinutes())+' SGT';
+}
+setInterval(tickClock,1000); tickClock();
+
+// ── PRICE FEED ─────────────────────────────────────────────────────
+let livePrice=null,liveHi=null,liveLo=null,liveChp=null;
+let lastPx=null,pollTmr=null;
+
+async function fetchPrice(){
+  try{
+    const r=await fetch('https://api.gold-api.com/price/XAU?_='+Date.now());
+    if(!r.ok)throw new Error(r.status);
+    const d=await r.json();
+    livePrice=d.price; liveChp=d.chp??0;
+    liveHi=d.high_price??d.high??(livePrice+5);
+    liveLo=d.low_price??d.low??(livePrice-5);
+    const ch=d.ch??0;
+    $('px-main').textContent='$'+fmt(livePrice);
+    $('px-hi').textContent='$'+fmt(liveHi);
+    $('px-lo').textContent='$'+fmt(liveLo);
+    $('px-rng').textContent=fmt(liveHi-liveLo)+' pts';
+    const b=$('px-chg');
+    b.textContent=(ch>=0?'+':'')+fmt(ch)+' ('+liveChp.toFixed(2)+'%)';
+    b.style.background=ch>=0?'rgba(45,206,126,.12)':'rgba(232,80,74,.12)';
+    b.style.color=ch>=0?'var(--green)':'var(--red)';
+    const s=nowSGT();
+    $('px-tick').textContent=pad(s.getUTCHours())+':'+pad(s.getUTCMinutes())+':'+pad(s.getUTCSeconds());
+  }catch(e){$('px-main').textContent='Unavailable';}
+}
+function startPoll(){fetchPrice();if(pollTmr)clearInterval(pollTmr);pollTmr=setInterval(()=>fetchPrice(),5000);}
+startPoll();
+
+// ── TYPEWRITER ─────────────────────────────────────────────────────
+async function typewrite(el,text,speed=18){
+  el.innerHTML='';
+  for(let i=0;i<text.length;i++){
+    el.innerHTML=text.slice(0,i+1)+'<span class="cursor"></span>';
+    await sleep(speed+(Math.random()*10));
+  }
+  el.innerHTML=text;
+}
+
+// ── SET AGENT STATE ────────────────────────────────────────────────
+function setAgentRunning(id){
+  $('card-'+id).className='agent-card running';
+  $('st-'+id).textContent='RUNNING';
+  $('st-'+id).className='agent-status running';
+}
+function setAgentDone(id,dir){
+  $('card-'+id).className='agent-card done-'+dir;
+  $('st-'+id).textContent='DONE';
+  $('st-'+id).className='agent-status done';
+}
+function setPips(id,score,dir){
+  const pips=$('sig-'+id).querySelectorAll('.sig-pip');
+  const filled=Math.round((score/100)*5);
+  pips.forEach((p,i)=>{p.className='sig-pip'+(i<filled?' on-'+dir:'');});
+}
+function showVerdict(id,dir,conf,label){
+  const vd=$('vd-'+id); vd.style.display='block'; vd.className='agent-verdict '+dir;
+  $('vd-'+id+'-dir').textContent=label; $('vd-'+id+'-dir').className='verdict-dir '+dir;
+  $('vd-'+id+'-conf').textContent='Confidence: '+conf+'%';
+}
+
+// ── ADD DEBATE MSG ─────────────────────────────────────────────────
+function addDebate(icon,bg,name,msg,delay=0){
+  return new Promise(async r=>{
+    await sleep(delay);
+    const log=$('debate-log');
+    if(log.querySelector('.debate-empty'))log.innerHTML='';
+    const div=document.createElement('div'); div.className='debate-msg';
+    div.innerHTML=`<div class="debate-avatar" style="background:${bg};">${icon}</div>
+      <div class="debate-bubble"><strong>${name}:</strong> ${msg}</div>`;
+    log.appendChild(div);
+    log.scrollTop=log.scrollHeight;
+    r();
+  });
+}
+
+// ── CLAUDE API CALL ────────────────────────────────────────────────
+async function callClaude(systemPrompt,userPrompt){
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-6',
+      max_tokens:1000,
+      system:systemPrompt,
+      messages:[{role:'user',content:userPrompt}]
+    })
+  });
+  const data=await res.json();
+  return data.content?.[0]?.text||'{}';
+}
+
+// ── MARKET CONTEXT ─────────────────────────────────────────────────
+function buildContext(){
+  const sgt=nowSGT(); const h=sgt.getUTCHours();
+  const sessions=[];
+  if(h>=8&&h<16)sessions.push('Asia');
+  if(h>=15&&h<24)sessions.push('London');
+  if(h>=20||h<5)sessions.push('NY');
+  return {
+    price:livePrice??0,
+    high:liveHi??0,
+    low:liveLo??0,
+    changePct:liveChp??0,
+    range:liveHi&&liveLo?+(liveHi-liveLo).toFixed(2):0,
+    sgtHour:h,
+    sgtTime:pad(h)+':'+pad(sgt.getUTCMinutes())+' SGT',
+    sgtDay:DAYS[sgt.getUTCDay()],
+    activeSessions:sessions.length?sessions.join('+'):'Transitioning',
+    atrEst:liveHi&&liveLo?+(((liveHi-liveLo)*1.5)).toFixed(2):25,
+    rsi:Math.min(80,Math.max(20,50+(liveChp??0)*4)).toFixed(1),
+    nearAsiaOpen:h>=6&&h<9,
+    highImpactToday:h>=18?'NFP/CPI possible later':'Check economic calendar'
+  };
+}
+
+// ── MAIN COUNCIL RUN ───────────────────────────────────────────────
+let isRunning=false;
+async function runCouncil(){
+  if(isRunning)return;
+  isRunning=true;
+  const btn=$('run-btn'); btn.disabled=true; btn.textContent='Running...';
+  $('debate-log').innerHTML='<div class="debate-empty">Agents initialising...</div>';
+  resetVerdict();
+
+  await fetchPrice();
+  const ctx=buildContext();
+  const ctxStr=JSON.stringify(ctx);
+
+  const agents=[
+    {
+      id:'pa', icon:'📈', bg:'rgba(201,168,76,.2)', name:'PRICE ACTION',
+      system:`You are the Price Action Agent for an XAUUSD trading council. You analyse trend, support/resistance, and candlestick patterns.
+Your job: given market data, output ONLY a JSON object with these exact fields:
+{"direction":"BUY"|"SELL"|"STAY OUT","confidence":0-100,"reasoning":"2-3 sentence analysis","key_level":number,"signal_strength":"STRONG"|"MODERATE"|"WEAK","debate_comment":"short 1-sentence debate contribution"}
+Be specific, mention actual price levels. No markdown, no extra text.`,
+      user:`XAUUSD market data right now (SGT): ${ctxStr}. Analyse price action and give your verdict.`
+    },
+    {
+      id:'nf', icon:'📰', bg:'rgba(90,147,246,.2)', name:'NEWS & MACRO',
+      system:`You are the News & Macro Agent for an XAUUSD trading council. You analyse DXY correlation, economic events, and market sentiment.
+Your job: given market data, output ONLY a JSON object with these exact fields:
+{"direction":"BUY"|"SELL"|"STAY OUT","confidence":0-100,"reasoning":"2-3 sentence analysis","dxy_bias":"BULLISH"|"BEARISH"|"NEUTRAL","risk_events":"brief description of key events","debate_comment":"short 1-sentence debate contribution"}
+No markdown, no extra text.`,
+      user:`XAUUSD market data right now (SGT): ${ctxStr}. Key context: Gold moves inverse to DXY. Asia session just opened. Analyse macro and give your verdict.`
+    },
+    {
+      id:'rk', icon:'🛡️', bg:'rgba(232,80,74,.2)', name:'RISK MANAGER',
+      system:`You are the Risk Manager Agent for an XAUUSD trading council. You evaluate whether the risk/reward setup is valid and calculate trade parameters.
+Your job: given market data, output ONLY a JSON object with these exact fields:
+{"direction":"BUY"|"SELL"|"STAY OUT","confidence":0-100,"reasoning":"2-3 sentence analysis","sl_pts":number_max_20,"tp_pts":number,"rr_ratio":number,"lot_size":number,"debate_comment":"short 1-sentence debate contribution"}
+SL must never exceed 20 points. Lot size assumes $10,000 account at 1% risk. No markdown, no extra text.`,
+      user:`XAUUSD market data right now (SGT): ${ctxStr}. Calculate the risk parameters and assess if the trade setup is worth taking.`
+    },
+    {
+      id:'tm', icon:'⏱️', bg:'rgba(159,122,234,.2)', name:'SESSION TIMER',
+      system:`You are the Session & Timing Agent for an XAUUSD trading council. You evaluate whether current timing is optimal for trading XAUUSD.
+Your job: given market data, output ONLY a JSON object with these exact fields:
+{"direction":"BUY"|"SELL"|"STAY OUT","confidence":0-100,"reasoning":"2-3 sentence analysis","session_quality":"PRIME"|"GOOD"|"AVOID","best_window_sgt":"time range string","volatility_expect":"HIGH"|"MEDIUM"|"LOW","debate_comment":"short 1-sentence debate contribution"}
+No markdown, no extra text.`,
+      user:`XAUUSD market data right now (SGT): ${ctxStr}. Current SGT hour: ${ctx.sgtHour}. Active sessions: ${ctx.activeSessions}. Assess session timing quality.`
+    }
+  ];
+
+  const results={};
+
+  // Run all 4 agents in sequence with typewriter effect
+  for(const ag of agents){
+    setAgentRunning(ag.id);
+    await typewrite($('th-'+ag.id),'Analysing market data...',16);
+    await sleep(300);
+
+    let parsed={};
+    try{
+      const raw=await callClaude(ag.system,ag.user);
+      const clean=raw.replace(/```json|```/g,'').trim();
+      parsed=JSON.parse(clean);
+    }catch(e){
+      // Fallback if API fails
+      parsed={direction:'STAY OUT',confidence:50,reasoning:'Unable to fetch AI analysis. Check API connection.',debate_comment:'No data available.',sl_pts:20,tp_pts:40,rr_ratio:2,lot_size:0.5,key_level:livePrice??0,dxy_bias:'NEUTRAL',risk_events:'Check calendar',session_quality:'GOOD',best_window_sgt:'08:00-16:00 SGT',volatility_expect:'MEDIUM'};
+    }
+
+    results[ag.id]=parsed;
+    const dir=(parsed.direction||'STAY OUT').toLowerCase().replace(' ','').replace('stayout','out');
+    const dirKey=dir==='buy'?'buy':dir==='sell'?'sell':'out';
+    const conf=parsed.confidence??50;
+
+    await typewrite($('th-'+ag.id),parsed.reasoning||'Analysis complete.',14);
+    setPips(ag.id,conf,dirKey);
+    showVerdict(ag.id,dirKey,conf,parsed.direction||'STAY OUT');
+    setAgentDone(ag.id,dirKey);
+    await sleep(400);
+  }
+
+  // DEBATE
+  await sleep(300);
+  const debateOrder=[
+    {id:'pa',icon:'📈',bg:'rgba(201,168,76,.2)',name:'Price Action'},
+    {id:'nf',icon:'📰',bg:'rgba(90,147,246,.2)',name:'News & Macro'},
+    {id:'rk',icon:'🛡️',bg:'rgba(232,80,74,.2)',name:'Risk Manager'},
+    {id:'tm',icon:'⏱️',bg:'rgba(159,122,234,.2)',name:'Session Timer'},
+  ];
+  for(const a of debateOrder){
+    const comment=results[a.id]?.debate_comment||'No comment.';
+    await addDebate(a.icon,a.bg,a.name,comment);
+    await sleep(600);
+  }
+
+  // Final arbitration via Claude
+  await sleep(400);
+  const summaryForArb=JSON.stringify({
+    priceAction:results.pa,newsMacro:results.nf,riskManager:results.rk,sessionTimer:results.tm,
+    marketData:ctx
+  });
+
+  await addDebate('⚖️','rgba(201,168,76,.3)','COUNCIL ARBITER','Synthesising all agent inputs to produce final verdict...');
+
+  let finalVerdict={};
+  try{
+    const arbRaw=await callClaude(
+      `You are the Council Arbiter for an XAUUSD trading council. You receive inputs from 4 specialist agents and produce a final unified verdict.
+Output ONLY a JSON object with these exact fields:
+{"final_direction":"BUY"|"SELL"|"STAY OUT","consensus_pct":0-100,"entry_price":number,"sl_price":number,"tp_price":number,"lot_size":number,"rr_ratio":number,"full_reasoning":"3-4 sentences covering all agent inputs","morning_briefing":["bullet 1","bullet 2","bullet 3","bullet 4","bullet 5"],"arbiter_comment":"1 sentence final call"}
+No markdown, no extra text.`,
+      `Agent council results: ${summaryForArb}. Synthesise and give the final verdict.`
+    );
+    const clean=arbRaw.replace(/```json|```/g,'').trim();
+    finalVerdict=JSON.parse(clean);
+  }catch(e){
+    const votes=[results.pa?.direction,results.nf?.direction,results.rk?.direction,results.tm?.direction];
+    const buys=votes.filter(v=>v==='BUY').length;
+    const sells=votes.filter(v=>v==='SELL').length;
+    finalVerdict={
+      final_direction:buys>sells?'BUY':sells>buys?'SELL':'STAY OUT',
+      consensus_pct:Math.round(Math.max(buys,sells)/4*100),
+      entry_price:livePrice??0,
+      sl_price:(livePrice??0)-(buys>sells?20:-20),
+      tp_price:(livePrice??0)+(buys>sells?40:-40),
+      lot_size:0.5,rr_ratio:2,
+      full_reasoning:'Council reached a '+Math.round(Math.max(buys,sells)/4*100)+'% consensus based on agent votes.',
+      morning_briefing:['Price: $'+fmt(livePrice),'Trend: check H1 EMA','Sessions: '+ctx.activeSessions,'RSI: '+ctx.rsi,'Risk: max 20pt SL'],
+      arbiter_comment:'Consensus reached by '+Math.max(buys,sells)+'/4 agents.'
+    };
+  }
+
+  await addDebate('⚖️','rgba(201,168,76,.3)','COUNCIL ARBITER',finalVerdict.arbiter_comment||'Verdict reached.');
+
+  // Render final verdict
+  renderFinalVerdict(finalVerdict,ctx);
+  renderScoreGrid(results);
+  renderBriefing(finalVerdict,ctx,results);
+
+  btn.disabled=false;
+  btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Run Again';
+  isRunning=false;
+}
+
+// ── RENDER VERDICT ─────────────────────────────────────────────────
+function renderFinalVerdict(v,ctx){
+  const dir=v.final_direction||'STAY OUT';
+  const dk=dir==='BUY'?'buy':dir==='SELL'?'sell':'out';
+  const conf=v.consensus_pct??50;
+  const px=livePrice??0;
+
+  $('vh').className='verdict-header '+dk;
+  $('v-big').textContent=dir; $('v-big').className='verdict-big '+dk;
+  $('v-sub').textContent='Council consensus · '+DAYS[nowSGT().getUTCDay()]+' Asia open '+nowSGT().getUTCHours()+':'+pad(nowSGT().getUTCMinutes())+' SGT';
+  $('v-conf').textContent=conf+'%';
+
+  // confidence bar
+  const segs=$('v-conf-bar').querySelectorAll('.conf-bar-seg');
+  const fill=Math.round(conf/10);
+  segs.forEach((s,i)=>{s.className='conf-bar-seg'+(i<fill?' on':'');});
+
+  // cols
+  $('vc-entry').textContent=v.entry_price?'$'+fmt(v.entry_price):(dir==='STAY OUT'?'No entry':'$'+fmt(px));
+  $('vc-entry-note').textContent=dir==='STAY OUT'?'Conditions not ideal — wait for cleaner setup':'Enter at open of next confirmed M15 candle';
+  $('vc-sl').textContent='SL: '+(v.sl_price?'$'+fmt(v.sl_price):'--');
+  $('vc-tp').textContent='TP: '+(v.tp_price?'$'+fmt(v.tp_price):'--');
+  $('vc-rr').textContent='RR: 1:'+(v.rr_ratio??'--');
+  $('vc-lots').textContent=(v.lot_size??'--')+' lots';
+  $('v-reasoning').textContent=v.full_reasoning||'No reasoning provided.';
+  $('v-reasoning').className='vr-text';
+}
+
+function resetVerdict(){
+  $('vh').className='verdict-header pending';
+  $('v-big').textContent='RUNNING...'; $('v-big').className='verdict-big pending';
+  $('v-sub').textContent='Council is analysing...';
+  $('v-conf').textContent='--%';
+  $('vc-entry').textContent='--'; $('vc-sl').textContent='--'; $('vc-tp').textContent='--'; $('vc-lots').textContent='--';
+  $('v-reasoning').textContent='Agents running...'; $('v-reasoning').className='vr-text pending-txt';
+}
+
+// ── SCORE GRID ─────────────────────────────────────────────────────
+function renderScoreGrid(results){
+  const map=[
+    {id:'pa',name:'PRICE ACTION'},{id:'nf',name:'NEWS & MACRO'},
+    {id:'rk',name:'RISK MANAGER'},{id:'tm',name:'SESSION TIMER'}
+  ];
+  $('score-grid').innerHTML=map.map(a=>{
+    const r=results[a.id]||{};
+    const dir=r.direction||'--';
+    const dk=dir==='BUY'?'buy':dir==='SELL'?'sell':dir==='STAY OUT'?'out':'';
+    return `<div class="score-cell">
+      <div class="score-agent">${a.name}</div>
+      <div class="score-dir ${dk}">${dir}</div>
+      <div class="score-conf">Confidence: ${r.confidence??'--'}%</div>
+    </div>`;
+  }).join('');
+}
+
+// ── MORNING BRIEFING ───────────────────────────────────────────────
+function renderBriefing(v,ctx,results){
+  const bullets=v.morning_briefing||[];
+  const extraData=[
+    {dot:'i',key:'Spot price',val:'$'+fmt(livePrice)+' ('+((liveChp??0)>=0?'+':'')+((liveChp??0).toFixed(2))+'%)'},
+    {dot:'i',key:'Day range',val:fmt(liveHi-liveLo)+' pts | H:$'+fmt(liveHi)+' L:$'+fmt(liveLo)},
+    {dot:'i',key:'Session',val:ctx.activeSessions+' · '+ctx.sgtTime},
+    {dot:'n',key:'RSI (est)',val:ctx.rsi+' — '+(ctx.rsi>70?'Overbought':ctx.rsi<30?'Oversold':ctx.rsi>55?'Bullish':'Neutral')},
+    {dot:(results.tm?.session_quality==='PRIME'?'b':results.tm?.session_quality==='AVOID'?'s':'n'),key:'Session quality',val:results.tm?.session_quality||'--'},
+    {dot:'i',key:'Best window',val:results.tm?.best_window_sgt||'08:00–16:00 SGT'},
+    {dot:(results.nf?.dxy_bias==='BEARISH'?'b':results.nf?.dxy_bias==='BULLISH'?'s':'n'),key:'DXY bias',val:results.nf?.dxy_bias||'--'},
+    {dot:'n',key:'Risk events',val:results.nf?.risk_events||'Check calendar'},
+    {dot:'s',key:'Max SL',val:'20 pts from entry'},
+  ];
+  const allLines=[...extraData,...bullets.map(b=>({dot:'b',key:'Briefing',val:b}))];
+  $('brief-lines').innerHTML=allLines.map(l=>`
+    <div class="brief-line">
+      <div class="brief-dot ${l.dot}"></div>
+      <span class="brief-key">${l.key}</span>
+      <span class="brief-val">${l.val}</span>
+    </div>`).join('');
+}
+</script>
+</body>
+</html>
