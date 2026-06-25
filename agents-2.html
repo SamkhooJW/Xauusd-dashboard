@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XAUUSD · Agent Council · SGT</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:#0d0d0f; --ink2:#141417; --ink3:#1c1c21; --ink4:#252529;
+  --gold:#C9A84C; --gold-bright:#F2CC6B; --gold-dim:#6b5520;
+  --wire:rgba(201,168,76,0.13); --wire2:rgba(201,168,76,0.3);
+  --text:#eceae3; --text-mid:#9a9790; --text-dim:#56544f;
+  --green:#2dce7e; --red:#e8504a; --blue:#5b9cf6; --amber:#f0a324;
+  --purple:#9f7aea; --r:8px;
+  --mono:'IBM Plex Mono',monospace; --sans:'IBM Plex Sans',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--sans);background:var(--ink);color:var(--text);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(201,168,76,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,0.025) 1px,transparent 1px);
+  background-size:32px 32px;}
+.wrap{position:relative;z-index:1;max-width:1300px;margin:0 auto;padding:0 24px 80px;}
+
+/* LOADER */
+.loader{position:fixed;inset:0;background:var(--ink);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity 0.7s;}
+.loader.gone{opacity:0;pointer-events:none;}
+.loader-ring{width:48px;height:48px;border:2px solid var(--gold-dim);border-top-color:var(--gold-bright);border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-txt{font-family:var(--mono);font-size:12px;color:var(--text-mid);letter-spacing:.15em;}
+.fade-in{opacity:0;animation:fi 0.6s ease 2.1s forwards;}
+@keyframes fi{to{opacity:1}}
+
+/* HEADER */
+header{padding:28px 0 22px;border-bottom:1px solid var(--wire);margin-bottom:28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.hdr-left{display:flex;align-items:center;gap:14px;}
+.logo-mark{width:44px;height:44px;border:1px solid var(--wire2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--gold-bright);}
+.hdr-title{font-size:18px;font-weight:600;letter-spacing:-.3px;}
+.hdr-title span{color:var(--gold);}
+.hdr-sub{font-size:11px;font-family:var(--mono);color:var(--text-dim);margin-top:2px;letter-spacing:.08em;}
+.hdr-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.clock-val{font-family:var(--mono);font-size:16px;color:var(--gold-bright);font-weight:700;}
+.clock-lbl{font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:2px;}
+.run-btn{display:flex;align-items:center;gap:7px;padding:10px 20px;background:var(--gold);border:none;border-radius:var(--r);color:var(--ink);font-family:var(--sans);font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;}
+.run-btn:hover{background:var(--gold-bright);}
+.run-btn:disabled{opacity:.5;cursor:not-allowed;}
+
+/* PRICE BAR */
+.price-bar{background:var(--ink2);border:1px solid var(--wire);border-radius:var(--r);padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.px-big{font-size:28px;font-weight:700;color:var(--gold-bright);font-family:var(--mono);}
+.px-stat-lbl{font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:3px;}
+.px-stat-val{font-family:var(--mono);font-size:13px;font-weight:600;}
+.chg-pill{font-family:var(--mono);font-size:12px;padding:4px 10px;border-radius:5px;}
+.live-dot::before{content:'';display:inline-block;width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 1.2s infinite;margin-right:5px;vertical-align:middle;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.price-error{background:rgba(232,80,74,.1);border:1px solid rgba(232,80,74,.2);border-radius:6px;padding:10px 14px;font-family:var(--mono);font-size:11px;color:var(--red);margin-bottom:12px;display:none;}
+
+/* AGENT GRID */
+.agent-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+@media(max-width:980px){.agent-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:560px){.agent-grid{grid-template-columns:1fr;}}
+.agent-card{background:var(--ink2);border:1px solid var(--wire);border-radius:var(--r);overflow:hidden;transition:border-color .3s;}
+.agent-card.running{border-color:var(--gold-dim);animation:cardPulse 1.5s ease infinite;}
+.agent-card.done-buy{border-color:rgba(45,206,126,.4);}
+.agent-card.done-sell{border-color:rgba(232,80,74,.4);}
+.agent-card.done-out{border-color:rgba(90,147,246,.4);}
+@keyframes cardPulse{0%,100%{border-color:var(--gold-dim)}50%{border-color:var(--gold-bright)}}
+.agent-header{padding:14px 16px 12px;border-bottom:1px solid var(--wire);display:flex;align-items:flex-start;gap:10px;}
+.agent-icon{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.agent-name{font-size:12px;font-weight:600;}
+.agent-role{font-size:10px;font-family:var(--mono);color:var(--text-dim);margin-top:2px;}
+.agent-status{margin-left:auto;font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;white-space:nowrap;}
+.agent-status.idle{background:var(--ink4);color:var(--text-dim);}
+.agent-status.running{background:rgba(201,168,76,.15);color:var(--gold);}
+.agent-status.done{background:rgba(45,206,126,.12);color:var(--green);}
+.agent-body{padding:14px 16px;}
+.agent-thinking{font-family:var(--mono);font-size:11px;color:var(--text-dim);line-height:1.7;min-height:90px;}
+.cursor{display:inline-block;width:7px;height:12px;background:var(--gold);margin-left:2px;animation:blink .8s step-end infinite;vertical-align:middle;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.sig-meter{display:flex;gap:3px;margin:10px 0;}
+.sig-pip{height:4px;flex:1;border-radius:2px;background:var(--ink4);}
+.sig-pip.buy{background:var(--green);}
+.sig-pip.sell{background:var(--red);}
+.sig-pip.out{background:var(--blue);}
+.agent-verdict{margin-top:4px;padding:8px 10px;border-radius:5px;font-family:var(--mono);font-size:11px;display:none;}
+.agent-verdict.buy{background:rgba(45,206,126,.1);border:1px solid rgba(45,206,126,.2);}
+.agent-verdict.sell{background:rgba(232,80,74,.1);border:1px solid rgba(232,80,74,.2);}
+.agent-verdict.out{background:rgba(90,147,246,.1);border:1px solid rgba(90,147,246,.2);}
+.vd-dir{font-size:13px;font-weight:700;margin-bottom:3px;}
+.vd-dir.buy{color:var(--green);}
+.vd-dir.sell{color:var(--red);}
+.vd-dir.out{color:var(--blue);}
+.vd-conf{font-size:10px;color:var(--text-mid);}
+
+/* DEBATE */
+.debate-box{background:var(--ink2);border:1px solid var(--wire);border-radius:var(--r);padding:18px 20px;margin-bottom:20px;}
+.section-ttl{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+.section-ttl::after{content:'';flex:1;height:1px;background:var(--wire);}
+.debate-log{display:flex;flex-direction:column;gap:10px;min-height:50px;}
+.debate-msg{display:flex;gap:10px;align-items:flex-start;}
+.debate-av{width:26px;height:26px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-top:1px;}
+.debate-bubble{background:var(--ink3);border:1px solid var(--wire);border-radius:6px;padding:8px 12px;font-family:var(--mono);font-size:11px;color:var(--text-mid);line-height:1.6;flex:1;}
+.debate-bubble strong{color:var(--text);}
+.debate-empty{font-family:var(--mono);font-size:11px;color:var(--text-dim);text-align:center;padding:16px 0;}
+
+/* FINAL VERDICT */
+.verdict-wrap{border-radius:var(--r);overflow:hidden;margin-bottom:20px;border:1px solid var(--wire);}
+.verdict-hdr{padding:20px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;}
+.verdict-hdr.buy{background:linear-gradient(135deg,rgba(45,206,126,.14),rgba(45,206,126,.04));}
+.verdict-hdr.sell{background:linear-gradient(135deg,rgba(232,80,74,.14),rgba(232,80,74,.04));}
+.verdict-hdr.out{background:linear-gradient(135deg,rgba(90,147,246,.14),rgba(90,147,246,.04));}
+.verdict-hdr.pending{background:var(--ink2);}
+.v-big{font-size:38px;font-weight:700;letter-spacing:-1px;}
+.v-big.buy{color:var(--green);}
+.v-big.sell{color:var(--red);}
+.v-big.out{color:var(--blue);}
+.v-big.pending{color:var(--text-dim);}
+.v-sub{font-family:var(--mono);font-size:11px;color:var(--text-mid);margin-top:5px;}
+.conf-lbl{font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:4px;}
+.conf-val{font-size:30px;font-weight:700;color:var(--gold-bright);font-family:var(--mono);}
+.conf-segs{display:flex;gap:3px;margin-top:6px;}
+.conf-seg{height:4px;width:18px;border-radius:2px;background:var(--ink4);}
+.conf-seg.on{background:var(--gold);}
+.verdict-body{background:var(--ink2);border-top:1px solid var(--wire);}
+.v-cols{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--wire);}
+@media(max-width:700px){.v-cols{grid-template-columns:1fr;}}
+.v-col{padding:16px 20px;border-right:1px solid var(--wire);}
+.v-col:last-child{border-right:none;}
+.vc-lbl{font-family:var(--mono);font-size:10px;color:var(--text-dim);text-transform:uppercase;margin-bottom:8px;}
+.vc-main{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--gold-bright);}
+.vc-sl{font-family:var(--mono);font-size:13px;color:var(--red);margin-top:4px;}
+.vc-tp{font-family:var(--mono);font-size:13px;color:var(--green);margin-top:3px;}
+.vc-note{font-size:11px;color:var(--text-dim);margin-top:6px;line-height:1.5;}
+.v-reasoning{padding:16px 20px;}
+.vr-lbl{font-family:var(--mono);font-size:10px;color:var(--text-dim);text-transform:uppercase;margin-bottom:8px;}
+.vr-txt{font-size:13px;color:var(--text-mid);line-height:1.8;}
+.vr-txt.dim{color:var(--text-dim);font-family:var(--mono);font-size:11px;}
+
+/* BRIEFING */
+.brief-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:20px;}
+@media(max-width:800px){.brief-grid{grid-template-columns:1fr;}}
+.brief-card{background:var(--ink2);border:1px solid var(--wire);border-radius:var(--r);padding:18px 20px;}
+.brief-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--wire);font-size:12px;}
+.brief-row:last-child{border-bottom:none;}
+.br-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.br-dot.g{background:var(--green);}
+.br-dot.r{background:var(--red);}
+.br-dot.a{background:var(--amber);}
+.br-dot.b{background:var(--blue);}
+.br-key{color:var(--text-mid);min-width:100px;font-family:var(--mono);font-size:11px;}
+.br-val{color:var(--text);flex:1;font-size:12px;}
+.score-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.score-cell{background:var(--ink3);border-radius:6px;padding:10px 12px;border:1px solid var(--wire);}
+.sc-agent{font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:4px;}
+.sc-dir{font-size:13px;font-weight:700;}
+.sc-dir.buy{color:var(--green);}
+.sc-dir.sell{color:var(--red);}
+.sc-dir.out{color:var(--blue);}
+.sc-conf{font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:2px;}
+
+footer{border-top:1px solid var(--wire);padding-top:16px;font-family:var(--mono);font-size:10px;color:var(--text-dim);text-align:center;line-height:2;letter-spacing:.05em;}
+</style>
+</head>
+<body>
+
+<div class="loader" id="loader">
+  <div class="loader-ring"></div>
+  <div class="loader-txt">INITIALISING AGENT COUNCIL · SGT</div>
+</div>
+
+<div class="wrap fade-in">
+  <header>
+    <div class="hdr-left">
+      <div class="logo-mark">AU</div>
+      <div>
+        <div class="hdr-title">XAUUSD <span>Agent Council</span></div>
+        <div class="hdr-sub">ASIA OPEN MORNING BRIEF · SGT (UTC+8)</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div>
+        <div class="clock-val" id="sgt-clk">--:--:--</div>
+        <div class="clock-lbl">SGT · <span id="sgt-date">--</span></div>
+      </div>
+      <button class="run-btn" id="run-btn" onclick="runCouncil()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        Run Agent Council
+      </button>
+    </div>
+  </header>
+
+  <!-- PRICE ERROR BANNER -->
+  <div class="price-error" id="px-err">
+    ⚠ Live price feed unavailable. Enter price manually below or check your connection — agents will still run.
+  </div>
+
+  <!-- MANUAL PRICE ENTRY (shown only when all feeds fail) -->
+  <div id="manual-bar" style="display:none;background:var(--ink2);border:1px solid rgba(232,80,74,.3);border-radius:var(--r);padding:12px 18px;margin-bottom:16px;align-items:center;gap:12px;flex-wrap:wrap;">
+    <span style="font-family:var(--mono);font-size:11px;color:var(--text-mid);">Enter current XAUUSD price:</span>
+    <input id="manual-px" type="number" placeholder="e.g. 3320.50" step="0.01"
+      style="background:var(--ink3);border:1px solid var(--wire2);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:13px;padding:7px 12px;width:150px;outline:none;">
+    <span style="font-family:var(--mono);font-size:11px;color:var(--text-mid);">Est. day range (pts):</span>
+    <input id="manual-rng" type="number" placeholder="e.g. 25" value="25"
+      style="background:var(--ink3);border:1px solid var(--wire2);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:13px;padding:7px 12px;width:100px;outline:none;">
+    <button onclick="applyManualPrice()"
+      style="padding:7px 16px;background:var(--gold);border:none;border-radius:6px;color:var(--ink);font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer;">
+      Apply & Run Agents
+    </button>
+    <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);">Check TradingView or your broker for current price</span>
+  </div>
+
+  <!-- PRICE BAR -->
+  <div class="price-bar">
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:3px;"><span class="live-dot"></span>XAU/USD LIVE</div>
+        <div class="px-big" id="px-main">Fetching...</div>
+      </div>
+      <div class="chg-pill" id="px-chg" style="background:var(--ink4);color:var(--text-mid);">...</div>
+    </div>
+    <div style="display:flex;gap:24px;flex-wrap:wrap;">
+      <div><div class="px-stat-lbl">High</div><div class="px-stat-val" id="px-hi">--</div></div>
+      <div><div class="px-stat-lbl">Low</div><div class="px-stat-val" id="px-lo">--</div></div>
+      <div><div class="px-stat-lbl">Range</div><div class="px-stat-val" id="px-rng">--</div></div>
+      <div><div class="px-stat-lbl">Last tick (SGT)</div><div class="px-stat-val" id="px-tick" style="color:var(--green);">--</div></div>
+    </div>
+  </div>
+
+  <!-- AGENT CARDS -->
+  <div class="agent-grid">
+    <div class="agent-card" id="card-pa">
+      <div class="agent-header">
+        <div class="agent-icon" style="background:rgba(201,168,76,.12);">📈</div>
+        <div><div class="agent-name">PRICE ACTION</div><div class="agent-role">Trend · S&R · Engulf</div></div>
+        <div class="agent-status idle" id="st-pa">IDLE</div>
+      </div>
+      <div class="agent-body">
+        <div class="agent-thinking" id="th-pa">Waiting to run...</div>
+        <div class="sig-meter" id="sm-pa"><div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div></div>
+        <div class="agent-verdict" id="vd-pa"><div class="vd-dir" id="vd-pa-dir">--</div><div class="vd-conf" id="vd-pa-conf">--</div></div>
+      </div>
+    </div>
+    <div class="agent-card" id="card-nf">
+      <div class="agent-header">
+        <div class="agent-icon" style="background:rgba(90,147,246,.12);">📰</div>
+        <div><div class="agent-name">NEWS & MACRO</div><div class="agent-role">DXY · Events · Sentiment</div></div>
+        <div class="agent-status idle" id="st-nf">IDLE</div>
+      </div>
+      <div class="agent-body">
+        <div class="agent-thinking" id="th-nf">Waiting to run...</div>
+        <div class="sig-meter" id="sm-nf"><div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div></div>
+        <div class="agent-verdict" id="vd-nf"><div class="vd-dir" id="vd-nf-dir">--</div><div class="vd-conf" id="vd-nf-conf">--</div></div>
+      </div>
+    </div>
+    <div class="agent-card" id="card-rk">
+      <div class="agent-header">
+        <div class="agent-icon" style="background:rgba(232,80,74,.12);">🛡️</div>
+        <div><div class="agent-name">RISK MANAGER</div><div class="agent-role">SL · TP · Position size</div></div>
+        <div class="agent-status idle" id="st-rk">IDLE</div>
+      </div>
+      <div class="agent-body">
+        <div class="agent-thinking" id="th-rk">Waiting to run...</div>
+        <div class="sig-meter" id="sm-rk"><div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div></div>
+        <div class="agent-verdict" id="vd-rk"><div class="vd-dir" id="vd-rk-dir">--</div><div class="vd-conf" id="vd-rk-conf">--</div></div>
+      </div>
+    </div>
+    <div class="agent-card" id="card-tm">
+      <div class="agent-header">
+        <div class="agent-icon" style="background:rgba(159,122,234,.12);">⏱️</div>
+        <div><div class="agent-name">SESSION TIMER</div><div class="agent-role">Timing · Volatility · Window</div></div>
+        <div class="agent-status idle" id="st-tm">IDLE</div>
+      </div>
+      <div class="agent-body">
+        <div class="agent-thinking" id="th-tm">Waiting to run...</div>
+        <div class="sig-meter" id="sm-tm"><div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div><div class="sig-pip"></div></div>
+        <div class="agent-verdict" id="vd-tm"><div class="vd-dir" id="vd-tm-dir">--</div><div class="vd-conf" id="vd-tm-conf">--</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEBATE -->
+  <div class="debate-box">
+    <div class="section-ttl">Agent debate</div>
+    <div class="debate-log" id="debate-log">
+      <div class="debate-empty">Agents will debate their findings here after running.</div>
+    </div>
+  </div>
+
+  <!-- FINAL VERDICT -->
+  <div class="verdict-wrap">
+    <div class="verdict-hdr pending" id="v-hdr">
+      <div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:.1em;margin-bottom:6px;">COUNCIL VERDICT</div>
+        <div class="v-big pending" id="v-big">AWAITING AGENTS</div>
+        <div class="v-sub" id="v-sub">Run the council to generate today's trade decision</div>
+      </div>
+      <div>
+        <div class="conf-lbl">CONSENSUS</div>
+        <div class="conf-val" id="v-conf">--%</div>
+        <div class="conf-segs" id="v-segs">
+          <div class="conf-seg"></div><div class="conf-seg"></div><div class="conf-seg"></div><div class="conf-seg"></div><div class="conf-seg"></div>
+          <div class="conf-seg"></div><div class="conf-seg"></div><div class="conf-seg"></div><div class="conf-seg"></div><div class="conf-seg"></div>
+        </div>
+      </div>
+    </div>
+    <div class="verdict-body">
+      <div class="v-cols">
+        <div class="v-col"><div class="vc-lbl">Suggested entry</div><div class="vc-main" id="vc-entry">--</div><div class="vc-note" id="vc-entry-note">Awaiting council</div></div>
+        <div class="v-col"><div class="vc-lbl">SL (max 20pts) · TP</div><div class="vc-sl" id="vc-sl">SL: --</div><div class="vc-tp" id="vc-tp">TP: --</div><div class="vc-note" id="vc-rr">RR: --</div></div>
+        <div class="v-col"><div class="vc-lbl">Position size (1% · $10k acct)</div><div class="vc-main" id="vc-lots">--</div><div class="vc-note">Adjust for your account in main dashboard</div></div>
+      </div>
+      <div class="v-reasoning"><div class="vr-lbl">Council reasoning</div><div class="vr-txt dim" id="v-reason">Run the council to generate reasoning.</div></div>
+    </div>
+  </div>
+
+  <!-- BRIEFING -->
+  <div class="brief-grid">
+    <div class="brief-card">
+      <div class="section-ttl">Morning briefing</div>
+      <div id="brief-rows"><div class="brief-row"><div class="br-dot b"></div><span class="br-key">Status</span><span class="br-val">Run the Agent Council to generate today's briefing.</span></div></div>
+    </div>
+    <div class="brief-card">
+      <div class="section-ttl">Agent scores</div>
+      <div class="score-grid" id="score-grid">
+        <div class="score-cell"><div class="sc-agent">PRICE ACTION</div><div class="sc-dir" style="color:var(--text-dim);">--</div><div class="sc-conf">Conf: --%</div></div>
+        <div class="score-cell"><div class="sc-agent">NEWS & MACRO</div><div class="sc-dir" style="color:var(--text-dim);">--</div><div class="sc-conf">Conf: --%</div></div>
+        <div class="score-cell"><div class="sc-agent">RISK MANAGER</div><div class="sc-dir" style="color:var(--text-dim);">--</div><div class="sc-conf">Conf: --%</div></div>
+        <div class="score-cell"><div class="sc-agent">SESSION TIMER</div><div class="sc-dir" style="color:var(--text-dim);">--</div><div class="sc-conf">Conf: --%</div></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    XAUUSD AGENT COUNCIL · SINGAPORE TIME (SGT · UTC+8)<br>
+    Built-in AI reasoning engine · gold-api.com live price · Not financial advice<br>
+    <span id="ft-time"></span>
+  </footer>
+</div>
+
+<script>
+// ── UTILS ──────────────────────────────────────────
+const $=id=>document.getElementById(id);
+const nowSGT=()=>new Date(Date.now()+8*3600*1000);
+const pad=n=>String(Math.floor(Math.abs(n))).padStart(2,'0');
+const fmt=n=>(!isNaN(n)&&n!=null)?Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'--';
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+// ── LOADER ─────────────────────────────────────────
+setTimeout(()=>$('loader').classList.add('gone'),2200);
+
+// ── CLOCK ──────────────────────────────────────────
+function tickClock(){
+  const s=nowSGT();
+  $('sgt-clk').textContent=pad(s.getUTCHours())+':'+pad(s.getUTCMinutes())+':'+pad(s.getUTCSeconds())+' SGT';
+  $('sgt-date').textContent=DAYS[s.getUTCDay()]+' '+s.getUTCDate()+'/'+(s.getUTCMonth()+1)+'/'+s.getUTCFullYear();
+  $('ft-time').textContent='Last run: '+DAYS[s.getUTCDay()]+' '+pad(s.getUTCHours())+':'+pad(s.getUTCMinutes())+' SGT';
+}
+setInterval(tickClock,1000); tickClock();
+
+// ── PRICE FEED (multiple fallbacks) ────────────────
+let livePrice=null,liveHi=null,liveLo=null,liveChp=0,liveOk=false;
+let pollTmr=null;
+
+// ── PRICE: tries 3 sources, falls back to manual entry ──
+const PRICE_SOURCES=[
+  async()=>{
+    const r=await fetch('https://api.gold-api.com/price/XAU?_='+Date.now());
+    if(!r.ok) throw new Error(r.status);
+    const d=await r.json();
+    if(!d.price) throw new Error('no price field');
+    return{price:d.price,ch:d.ch??0,chp:d.chp??0,hi:d.high_price??d.high??(d.price+10),lo:d.low_price??d.low??(d.price-10)};
+  },
+  async()=>{
+    // Alternate: use a public CORS proxy to reach gold-api
+    const url=encodeURIComponent('https://api.gold-api.com/price/XAU');
+    const r=await fetch('https://api.allorigins.win/get?url='+url);
+    if(!r.ok) throw new Error(r.status);
+    const wrapper=await r.json();
+    const d=JSON.parse(wrapper.contents);
+    if(!d.price) throw new Error('no price');
+    return{price:d.price,ch:d.ch??0,chp:d.chp??0,hi:d.high_price??d.high??(d.price+10),lo:d.low_price??d.low??(d.price-10)};
+  },
+  async()=>{
+    // Third fallback: another allorigins mirror
+    const url=encodeURIComponent('https://api.gold-api.com/price/XAU');
+    const r=await fetch('https://thingproxy.freeboard.io/fetch/https://api.gold-api.com/price/XAU');
+    if(!r.ok) throw new Error(r.status);
+    const d=await r.json();
+    if(!d.price) throw new Error('no price');
+    return{price:d.price,ch:d.ch??0,chp:d.chp??0,hi:d.high_price??d.high??(d.price+10),lo:d.low_price??d.low??(d.price-10)};
+  }
+];
+
+function applyPrice(d){
+  livePrice=d.price; liveChp=d.chp; liveHi=d.hi; liveLo=d.lo; liveOk=true;
+  const s=nowSGT();
+  $('px-main').textContent='$'+fmt(livePrice);
+  const b=$('px-chg');
+  b.textContent=(d.ch>=0?'+':'')+fmt(d.ch)+' ('+liveChp.toFixed(2)+'%)';
+  b.style.background=d.ch>=0?'rgba(45,206,126,.12)':'rgba(232,80,74,.12)';
+  b.style.color=d.ch>=0?'var(--green)':'var(--red)';
+  $('px-hi').textContent='$'+fmt(liveHi);
+  $('px-lo').textContent='$'+fmt(liveLo);
+  $('px-rng').textContent=fmt(liveHi-liveLo)+' pts';
+  $('px-tick').textContent=pad(s.getUTCHours())+':'+pad(s.getUTCMinutes())+':'+pad(s.getUTCSeconds())+' SGT';
+  $('px-err').style.display='none';
+  $('manual-bar').style.display='none';
+}
+
+async function fetchPrice(){
+  for(const src of PRICE_SOURCES){
+    try{ const d=await src(); applyPrice(d); return true; }
+    catch(e){ continue; }
+  }
+  // All sources failed — show manual entry bar
+  liveOk=false;
+  $('px-err').style.display='block';
+  $('manual-bar').style.display='flex';
+  $('px-main').textContent=livePrice?'$'+fmt(livePrice):'Enter price ↓';
+  $('px-tick').textContent='manual mode';
+  if(!livePrice){ livePrice=3320; liveHi=3332; liveLo=3308; }
+  return false;
+}
+
+function applyManualPrice(){
+  const v=parseFloat($('manual-px').value);
+  if(!v||v<1000||v>99999){alert('Enter a valid XAUUSD price (e.g. 3320)');return;}
+  const spread=parseFloat($('manual-rng').value)||20;
+  livePrice=v; liveHi=v+(spread/2); liveLo=v-(spread/2); liveChp=0; liveOk=true;
+  $('px-main').textContent='$'+fmt(v)+' (manual)';
+  $('px-hi').textContent='$'+fmt(liveHi);
+  $('px-lo').textContent='$'+fmt(liveLo);
+  $('px-rng').textContent=fmt(spread)+' pts';
+  $('px-chg').textContent='Manual entry';
+  $('px-tick').textContent='manual';
+  $('px-err').style.display='none';
+  $('manual-bar').style.display='none';
+}
+function startPoll(){fetchPrice();if(pollTmr)clearInterval(pollTmr);pollTmr=setInterval(fetchPrice,5000);}
+startPoll();
+
+// ── TYPEWRITER ─────────────────────────────────────
+async function typewrite(el,text,spd=15){
+  el.innerHTML='';
+  for(let i=0;i<=text.length;i++){
+    el.innerHTML=text.slice(0,i)+'<span class="cursor"></span>';
+    await sleep(spd+Math.random()*8);
+  }
+  el.innerHTML=text;
+}
+
+// ── AGENT STATE ────────────────────────────────────
+function setRunning(id){$('card-'+id).className='agent-card running';$('st-'+id).textContent='RUNNING';$('st-'+id).className='agent-status running';}
+function setDone(id,dk){$('card-'+id).className='agent-card done-'+dk;$('st-'+id).textContent='DONE';$('st-'+id).className='agent-status done';}
+function setPips(id,pct,dk){$('sm-'+id).querySelectorAll('.sig-pip').forEach((p,i)=>{p.className='sig-pip'+(i<Math.round(pct/20)?' '+dk:'');});}
+function showVd(id,dk,dir,conf){const v=$('vd-'+id);v.style.display='block';v.className='agent-verdict '+dk;$('vd-'+id+'-dir').textContent=dir;$('vd-'+id+'-dir').className='vd-dir '+dk;$('vd-'+id+'-conf').textContent='Confidence: '+conf+'%';}
+
+// ── DEBATE ─────────────────────────────────────────
+async function addMsg(icon,bg,name,msg){
+  await sleep(200);
+  const log=$('debate-log');
+  if(log.querySelector('.debate-empty'))log.innerHTML='';
+  const d=document.createElement('div');d.className='debate-msg';
+  d.innerHTML=`<div class="debate-av" style="background:${bg}">${icon}</div><div class="debate-bubble"><strong>${name}:</strong> ${msg}</div>`;
+  log.appendChild(d);log.scrollTop=log.scrollHeight;
+}
+
+// ═══════════════════════════════════════════════════
+// BUILT-IN AGENT REASONING ENGINE (no external API)
+// Each agent analyses the market data with its own
+// specialised logic and produces a verdict + commentary
+// ═══════════════════════════════════════════════════
+
+function agentPriceAction(ctx){
+  const{price,hi,lo,chp,rsi,range,pricePos,sgtHour}=ctx;
+  let score=0,notes=[],comment='';
+
+  // Trend
+  if(chp>0.5){score+=25;notes.push('Strong bullish day momentum (+'+chp.toFixed(2)+'%)');}
+  else if(chp>0.2){score+=12;notes.push('Mild bullish momentum');}
+  else if(chp<-0.5){score-=25;notes.push('Strong bearish momentum ('+chp.toFixed(2)+'%)');}
+  else if(chp<-0.2){score-=12;notes.push('Mild bearish pressure');}
+  else{notes.push('Price consolidating near flat');}
+
+  // S&R position
+  if(pricePos<0.25){score+=20;notes.push('Price near session low — potential support bounce');}
+  else if(pricePos>0.75){score-=20;notes.push('Price near session high — potential resistance rejection');}
+  else{notes.push('Price mid-range — wait for S&R test');}
+
+  // RSI
+  if(rsi<32){score+=15;notes.push('RSI oversold ('+rsi.toFixed(0)+') — buy confluence');}
+  else if(rsi>68){score-=15;notes.push('RSI overbought ('+rsi.toFixed(0)+') — avoid longs');}
+  else if(rsi>52&&rsi<68){score+=8;notes.push('RSI bullish zone ('+rsi.toFixed(0)+')');}
+  else if(rsi<48&&rsi>32){score-=8;notes.push('RSI bearish zone ('+rsi.toFixed(0)+')');}
+
+  // Range context
+  if(range<15){notes.push('Tight range '+range.toFixed(0)+'pts — possible breakout incoming');}
+  else if(range>40){notes.push('Wide range '+range.toFixed(0)+'pts — volatility elevated');}
+
+  const dir=score>15?'BUY':score<-15?'SELL':'STAY OUT';
+  const conf=Math.min(95,Math.max(40,55+Math.abs(score)));
+  const keyLevel=score>0?+(lo+(range*0.25)).toFixed(2):+(hi-(range*0.25)).toFixed(2);
+
+  if(dir==='BUY') comment=`Price action bullish: momentum +${chp.toFixed(2)}%, RSI ${rsi.toFixed(0)}, near support $${fmt(keyLevel)} — I vote BUY.`;
+  else if(dir==='SELL') comment=`Price action bearish: selling pressure ${chp.toFixed(2)}%, RSI ${rsi.toFixed(0)}, near resistance $${fmt(keyLevel)} — I vote SELL.`;
+  else comment=`Mixed signals — price mid-range, RSI ${rsi.toFixed(0)}, no clean S&R test yet. I recommend STAY OUT.`;
+
+  return{dir,conf,reasoning:notes.join('. ')+'.',keyLevel,comment,score};
+}
+
+function agentNewsMacro(ctx){
+  const{price,chp,sgtHour,sgtDay,rsi}=ctx;
+  let score=0,notes=[],comment='';
+
+  // DXY inverse: gold up = DXY down (bearish for USD = bullish for gold)
+  const dxyBias=chp>0.3?'BEARISH (gold up)':chp<-0.3?'BULLISH (gold down)':'NEUTRAL';
+  if(chp>0.3){score+=20;notes.push('DXY likely weakening — bullish tailwind for gold');}
+  else if(chp<-0.3){score-=20;notes.push('DXY likely strengthening — bearish for gold');}
+  else{notes.push('DXY neutral — no strong macro push');}
+
+  // Day of week risk
+  if(sgtDay==='Fri'){score-=10;notes.push('Friday — NFP risk, position sizing caution advised');}
+  if(sgtDay==='Mon'){notes.push('Monday open — watch for gap and Asian liquidity sweep');}
+  if(sgtDay==='Wed'){score-=5;notes.push('Wednesday — potential FOMC/Fed speaker risk');}
+
+  // Session timing macro
+  if(sgtHour>=8&&sgtHour<10){score+=10;notes.push('Early Asia open — London often continues this direction');}
+  if(sgtHour>=15&&sgtHour<16){notes.push('London open approaching — expect volatility expansion');}
+
+  // Sentiment: elevated fear = bullish for gold (safe haven)
+  const fearPct=55+(chp*5); // proxy
+  if(fearPct>65){score+=10;notes.push('Risk-off sentiment — safe haven demand supports gold');}
+  else if(fearPct<35){score-=10;notes.push('Risk-on mood — gold safe haven demand reduced');}
+
+  const dir=score>12?'BUY':score<-12?'SELL':'STAY OUT';
+  const conf=Math.min(90,Math.max(40,50+Math.abs(score)));
+
+  if(dir==='BUY') comment=`Macro picture supports gold: DXY ${dxyBias}, risk-off sentiment elevated — I vote BUY.`;
+  else if(dir==='SELL') comment=`Macro headwinds for gold: DXY ${dxyBias}, risk-on reducing safe-haven demand — I vote SELL.`;
+  else comment=`Macro neutral — DXY ${dxyBias}, no dominant event risk today. Macro doesn't add conviction either way.`;
+
+  return{dir,conf,reasoning:notes.join('. ')+'.',dxyBias,comment,score};
+}
+
+function agentRiskManager(ctx){
+  const{price,hi,lo,chp,range,pricePos}=ctx;
+  let score=0,notes=[],comment='';
+
+  const sl=20; // your fixed max SL
+  const tp=Math.round(sl*2.2); // 1:2.2 RR default
+  const rr=(tp/sl).toFixed(1);
+  const lots=(10000*0.01/(sl*10)).toFixed(2); // 1% of $10k
+
+  // Is RR achievable?
+  if(range>sl*1.5){score+=15;notes.push('Day range ('+range.toFixed(0)+'pts) supports '+tp+'pt TP — RR achievable');}
+  else{score-=10;notes.push('Tight range ('+range.toFixed(0)+'pts) — TP target '+tp+'pts may be ambitious');}
+
+  // SL placement
+  if(chp>0.3&&pricePos<0.5){score+=15;notes.push('Bullish momentum with room to run — favourable RR for long');}
+  else if(chp<-0.3&&pricePos>0.5){score+=15;notes.push('Bearish momentum from highs — favourable RR for short');}
+  else if(pricePos>0.6&&chp>0){score-=10;notes.push('Price high in range chasing — unfavourable entry risk');}
+  else if(pricePos<0.4&&chp<0){score-=10;notes.push('Selling into lows — poor RR risk');}
+
+  // Volatility check
+  if(range<10){score-=15;notes.push('Range too tight (<10pts) — spread eats into SL, avoid');}
+  else if(range>50){score+=5;notes.push('High volatility — larger moves possible, manage size');}
+
+  notes.push('SL: 20pts ($'+fmt(chp>0?price-20:price+20)+') | TP: '+tp+'pts ($'+fmt(chp>0?price+tp:price-tp)+') | Lots: '+lots+' | RR: 1:'+rr);
+
+  const dir=score>10?'BUY':score<-10?'SELL':'STAY OUT';
+  const conf=Math.min(92,Math.max(40,52+Math.abs(score)));
+
+  if(dir==='BUY') comment=`Risk setup valid for long: SL 20pts, TP ${tp}pts, RR 1:${rr}, ${lots} lots. Setup looks clean — I vote BUY.`;
+  else if(dir==='SELL') comment=`Risk setup valid for short: SL 20pts, TP ${tp}pts, RR 1:${rr}. Favourable short risk — I vote SELL.`;
+  else comment=`Risk conditions unfavourable — range ${range.toFixed(0)}pts, SL placement difficult. Capital protection first — STAY OUT.`;
+
+  return{dir,conf,reasoning:notes.join('. ')+'.',sl,tp:tp,rr,lots,comment,score};
+}
+
+function agentSessionTimer(ctx){
+  const{sgtHour,sgtDay,price,chp,range}=ctx;
+  let score=0,notes=[],comment='',quality='',window='';
+
+  // SGT session windows
+  if(sgtHour>=8&&sgtHour<10){
+    score+=20;quality='PRIME';window='08:00–10:00 SGT';
+    notes.push('Prime Asia open window (08:00–10:00 SGT) — first directional push forming');
+  } else if(sgtHour>=10&&sgtHour<14){
+    score+=5;quality='GOOD';window='10:00–14:00 SGT';
+    notes.push('Mid-Asia session — momentum continuation or consolidation likely');
+  } else if(sgtHour>=14&&sgtHour<16){
+    score+=8;quality='GOOD';window='14:00–16:00 SGT';
+    notes.push('Pre-London — Asia range establishing, watch for London breakout setup');
+  } else if(sgtHour>=15&&sgtHour<18){
+    score+=25;quality='PRIME';window='15:00–18:00 SGT';
+    notes.push('London open overlap — highest quality setup window for XAUUSD');
+  } else if(sgtHour>=20&&sgtHour<24){
+    score+=20;quality='PRIME';window='20:00–00:00 SGT';
+    notes.push('LDN/NY overlap (20:00–00:00 SGT) — peak volume, cleanest moves');
+  } else if(sgtHour>=0&&sgtHour<5){
+    score-=10;quality='AVOID';window='00:00–05:00 SGT';
+    notes.push('NY close / dead zone — low volume, spread risk, avoid trading');
+  } else if(sgtHour>=5&&sgtHour<8){
+    score-=15;quality='AVOID';window='05:00–08:00 SGT';
+    notes.push('Pre-Asia dead zone (05:00–08:00 SGT) — minimal volume, false moves likely');
+  }
+
+  // Weekend
+  if(sgtDay==='Sat'||sgtDay==='Sun'){score=-50;quality='AVOID';notes.push('Weekend — markets closed or illiquid, do not trade');}
+
+  // Volatility expectation
+  const volExp=range>30?'HIGH':range>15?'MEDIUM':'LOW';
+  notes.push('Expected volatility: '+volExp+' (current range: '+range.toFixed(0)+'pts)');
+  notes.push('Best SGT window today: '+window);
+
+  const dir=score>15?'BUY':score<-15?'STAY OUT':'STAY OUT';
+  // Session timer doesn't pick direction — it validates timing
+  const timingDir=quality==='AVOID'?'STAY OUT':quality==='PRIME'?'BUY':'STAY OUT';
+  const conf=Math.min(90,Math.max(35,50+Math.abs(score)));
+
+  if(quality==='PRIME') comment=`Timing is prime (${window}) — session conditions optimal for a setup. Green light on timing.`;
+  else if(quality==='GOOD') comment=`Timing is adequate (${window}) — session is active but not peak. Proceed with extra confirmation.`;
+  else comment=`Timing is poor (${window}) — low volume window, high risk of false signals. I recommend STAY OUT until better window.`;
+
+  return{dir:timingDir,conf,reasoning:notes.join('. ')+'.',quality,window,volExp,comment,score};
+}
+
+// ── ARBITER — synthesises all 4 agents ────────────
+function arbiter(pa,nf,rk,tm,ctx){
+  const{price}=ctx;
+  const votes=[pa.dir,nf.dir,rk.dir,tm.dir];
+  const buys=votes.filter(v=>v==='BUY').length;
+  const sells=votes.filter(v=>v==='SELL').length;
+  const outs=votes.filter(v=>v==='STAY OUT').length;
+
+  let finalDir, consensus;
+  if(tm.quality==='AVOID'){finalDir='STAY OUT';consensus=90;}
+  else if(buys>=3){finalDir='BUY';consensus=Math.round(75+(buys-3)*10+pa.conf/20);}
+  else if(sells>=3){finalDir='SELL';consensus=Math.round(75+(sells-3)*10+pa.conf/20);}
+  else if(buys===2&&outs<=1&&sells===0){finalDir='BUY';consensus=62;}
+  else if(sells===2&&outs<=1&&buys===0){finalDir='SELL';consensus=62;}
+  else{finalDir='STAY OUT';consensus=55;}
+  consensus=Math.min(96,consensus);
+
+  const sl=20;
+  const tp=rk.tp||44;
+  const entry=price;
+  const slPrice=finalDir==='BUY'?+(price-sl).toFixed(2):+(price+sl).toFixed(2);
+  const tpPrice=finalDir==='BUY'?+(price+tp).toFixed(2):+(price-tp).toFixed(2);
+  const lots=rk.lots||0.50;
+
+  let reasoning='';
+  if(finalDir==='BUY'){
+    reasoning=`Council votes ${buys}/4 BUY. Price action shows ${pa.score>0?'bullish':'neutral'} momentum (${ctx.chp.toFixed(2)}%). `+
+    `Macro background ${nf.score>0?'supportive':'neutral'} with DXY ${nf.dxyBias}. `+
+    `Risk manager validates RR 1:${rk.rr} with 20pt SL. Session quality: ${tm.quality} (${tm.window}). `+
+    `Entry near $${fmt(entry)}, SL at $${fmt(slPrice)}, TP at $${fmt(tpPrice)}.`;
+  } else if(finalDir==='SELL'){
+    reasoning=`Council votes ${sells}/4 SELL. Price action shows bearish pressure (${ctx.chp.toFixed(2)}%). `+
+    `DXY bias ${nf.dxyBias} adds macro headwind. `+
+    `Risk manager validates short RR 1:${rk.rr}. Session quality: ${tm.quality} (${tm.window}). `+
+    `Entry near $${fmt(entry)}, SL at $${fmt(slPrice)}, TP at $${fmt(tpPrice)}.`;
+  } else {
+    reasoning=`Council cannot reach sufficient consensus (BUY:${buys} SELL:${sells} OUT:${outs}). `+
+    `${tm.quality==='AVOID'?'Session timing unfavourable — '+tm.window+'.':''} `+
+    `Mixed signals across agents. Best action: wait for cleaner confluence before Asia open trade. `+
+    `Monitor price around $${fmt(price)} for a breakout or S&R confirmation.`;
+  }
+
+  const briefing=[
+    `Spot: $${fmt(price)} (${ctx.chp>=0?'+':''}${ctx.chp.toFixed(2)}% today)`,
+    `RSI: ${ctx.rsi.toFixed(0)} — ${ctx.rsi>68?'Overbought ⚠':ctx.rsi<32?'Oversold — watch for bounce':'Neutral zone'}`,
+    `Session: ${tm.quality} · Best window: ${tm.window}`,
+    `DXY: ${nf.dxyBias} — ${nf.dxyBias.includes('BEARISH')?'bullish tailwind for gold':nf.dxyBias.includes('BULLISH')?'headwind for gold':'no directional push'}`,
+    `SL: 20pts max · TP: ${tp}pts · RR: 1:${rk.rr} · Lots: ${lots}`,
+    `Volatility: ${tm.volExp} (range ${ctx.range.toFixed(0)}pts)`,
+    finalDir!=='STAY OUT'?`Action: ${finalDir} at $${fmt(entry)} · SL $${fmt(slPrice)} · TP $${fmt(tpPrice)}`:'Action: WAIT — conditions not clean enough for entry',
+  ];
+
+  return{finalDir,consensus,entry,slPrice,tpPrice,lots,rr:rk.rr,reasoning,briefing};
+}
+
+// ── MAIN COUNCIL RUN ───────────────────────────────
+let isRunning=false;
+async function runCouncil(){
+  if(isRunning)return;
+  isRunning=true;
+  const btn=$('run-btn'); btn.disabled=true; btn.textContent='Running...';
+  $('debate-log').innerHTML='<div class="debate-empty">Agents initialising...</div>';
+  resetVerdict();
+
+  await fetchPrice();
+  await sleep(400);
+
+  const sgt=nowSGT();
+  const ctx={
+    price:livePrice, hi:liveHi, lo:liveLo, chp:liveChp,
+    range:+(liveHi-liveLo).toFixed(2),
+    pricePos:(livePrice-liveLo)/(liveHi-liveLo),
+    rsi:Math.min(80,Math.max(20,50+liveChp*3.5)),
+    sgtHour:sgt.getUTCHours(),
+    sgtDay:DAYS[sgt.getUTCDay()]
+  };
+
+  // ── Agent 1: Price Action ──
+  setRunning('pa');
+  await typewrite($('th-pa'),'Scanning trend, S&R levels, candle patterns...');
+  await sleep(500);
+  const pa=agentPriceAction(ctx);
+  const paDk=pa.dir==='BUY'?'buy':pa.dir==='SELL'?'sell':'out';
+  await typewrite($('th-pa'),pa.reasoning);
+  setPips('pa',pa.conf,paDk);
+  showVd('pa',paDk,pa.dir,pa.conf);
+  setDone('pa',paDk);
+  await sleep(300);
+
+  // ── Agent 2: News & Macro ──
+  setRunning('nf');
+  await typewrite($('th-nf'),'Scanning DXY correlation, macro events, sentiment...');
+  await sleep(500);
+  const nf=agentNewsMacro(ctx);
+  const nfDk=nf.dir==='BUY'?'buy':nf.dir==='SELL'?'sell':'out';
+  await typewrite($('th-nf'),nf.reasoning);
+  setPips('nf',nf.conf,nfDk);
+  showVd('nf',nfDk,nf.dir,nf.conf);
+  setDone('nf',nfDk);
+  await sleep(300);
+
+  // ── Agent 3: Risk Manager ──
+  setRunning('rk');
+  await typewrite($('th-rk'),'Calculating SL/TP validity, RR ratio, position size...');
+  await sleep(500);
+  const rk=agentRiskManager(ctx);
+  const rkDk=rk.dir==='BUY'?'buy':rk.dir==='SELL'?'sell':'out';
+  await typewrite($('th-rk'),rk.reasoning);
+  setPips('rk',rk.conf,rkDk);
+  showVd('rk',rkDk,rk.dir,rk.conf);
+  setDone('rk',rkDk);
+  await sleep(300);
+
+  // ── Agent 4: Session Timer ──
+  setRunning('tm');
+  await typewrite($('th-tm'),'Evaluating session timing, SGT window, volatility...');
+  await sleep(500);
+  const tm=agentSessionTimer(ctx);
+  const tmDk=tm.dir==='BUY'?'buy':tm.dir==='SELL'?'sell':'out';
+  await typewrite($('th-tm'),tm.reasoning);
+  setPips('tm',tm.conf,tmDk);
+  showVd('tm',tmDk,tm.dir,tm.conf);
+  setDone('tm',tmDk);
+  await sleep(400);
+
+  // ── Debate ──
+  await addMsg('📈','rgba(201,168,76,.2)','Price Action',pa.comment); await sleep(700);
+  await addMsg('📰','rgba(90,147,246,.2)','News & Macro',nf.comment); await sleep(700);
+  await addMsg('🛡️','rgba(232,80,74,.2)','Risk Manager',rk.comment); await sleep(700);
+  await addMsg('⏱️','rgba(159,122,234,.2)','Session Timer',tm.comment); await sleep(700);
+
+  // ── Arbitration ──
+  const arb=arbiter(pa,nf,rk,tm,ctx);
+  const dk=arb.finalDir==='BUY'?'buy':arb.finalDir==='SELL'?'sell':'out';
+  const arbComment=arb.finalDir!=='STAY OUT'
+    ?`Council consensus: ${arb.consensus}% — final verdict is ${arb.finalDir} at $${fmt(arb.entry)}.`
+    :`No strong consensus (${arb.consensus}% alignment) — council recommends STAY OUT and monitor.`;
+  await addMsg('⚖️','rgba(201,168,76,.35)','Council Arbiter',arbComment);
+
+  // ── Render ──
+  renderVerdict(arb,dk);
+  renderScores({pa,nf,rk,tm});
+  renderBriefing(arb,ctx,{pa,nf,rk,tm});
+
+  btn.disabled=false;
+  btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Run Again';
+  isRunning=false;
+}
+
+// ── RENDER ─────────────────────────────────────────
+function resetVerdict(){
+  $('v-hdr').className='verdict-hdr pending';
+  $('v-big').textContent='RUNNING...';$('v-big').className='v-big pending';
+  $('v-sub').textContent='Council is analysing...';$('v-conf').textContent='--%';
+  $('vc-entry').textContent='--';$('vc-sl').textContent='SL: --';$('vc-tp').textContent='TP: --';$('vc-lots').textContent='--';
+  $('v-reason').textContent='Agents running...';$('v-reason').className='vr-txt dim';
+}
+
+function renderVerdict(arb,dk){
+  const sgt=nowSGT();
+  $('v-hdr').className='verdict-hdr '+dk;
+  $('v-big').textContent=arb.finalDir;$('v-big').className='v-big '+dk;
+  $('v-sub').textContent='Council decision · '+DAYS[sgt.getUTCDay()]+' '+pad(sgt.getUTCHours())+':'+pad(sgt.getUTCMinutes())+' SGT';
+  $('v-conf').textContent=arb.consensus+'%';
+  $('v-segs').querySelectorAll('.conf-seg').forEach((s,i)=>{s.className='conf-seg'+(i<Math.round(arb.consensus/10)?' on':'');});
+  $('vc-entry').textContent=arb.finalDir!=='STAY OUT'?'$'+fmt(arb.entry):'No entry';
+  $('vc-entry-note').textContent=arb.finalDir!=='STAY OUT'?'Enter at open of next confirmed M15 candle':'Wait for cleaner setup — conditions not met';
+  $('vc-sl').textContent='SL: $'+fmt(arb.slPrice);
+  $('vc-tp').textContent='TP: $'+fmt(arb.tpPrice);
+  $('vc-rr').textContent='RR: 1:'+arb.rr;
+  $('vc-lots').textContent=arb.lots+' lots';
+  $('v-reason').textContent=arb.reasoning;$('v-reason').className='vr-txt';
+}
+
+function renderScores(r){
+  const agents=[{id:'pa',n:'PRICE ACTION'},{id:'nf',n:'NEWS & MACRO'},{id:'rk',n:'RISK MANAGER'},{id:'tm',n:'SESSION TIMER'}];
+  $('score-grid').innerHTML=agents.map(a=>{
+    const ag=r[a.id]; const dk=ag.dir==='BUY'?'buy':ag.dir==='SELL'?'sell':'out';
+    return `<div class="score-cell"><div class="sc-agent">${a.n}</div><div class="sc-dir ${dk}">${ag.dir}</div><div class="sc-conf">Conf: ${ag.conf}%</div></div>`;
+  }).join('');
+}
+
+function renderBriefing(arb,ctx,r){
+  const dotFor=v=>v.includes('bullish')||v.includes('BUY')||v.includes('PRIME')||v.includes('high')?'g':v.includes('AVOID')||v.includes('SELL')||v.includes('poor')?'r':'b';
+  $('brief-rows').innerHTML=arb.briefing.map(b=>`
+    <div class="brief-row">
+      <div class="br-dot ${dotFor(b)}"></div>
+      <span class="br-val">${b}</span>
+    </div>`).join('');
+}
+</script>
+</body>
+</html>
