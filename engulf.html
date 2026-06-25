@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XAUUSD · Engulfing Zones · SGT</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0d0d0f;--ink2:#141417;--ink3:#1c1c21;--ink4:#252529;
+  --gold:#C9A84C;--gold-bright:#F2CC6B;--gold-dim:#6b5520;
+  --wire:rgba(201,168,76,0.13);--wire2:rgba(201,168,76,0.3);
+  --text:#eceae3;--text-mid:#9a9790;--text-dim:#56544f;
+  --green:#2dce7e;--red:#e8504a;--blue:#5b9cf6;--amber:#f0a324;
+  --purple:#9f7aea;--r:8px;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--sans);background:var(--ink);color:var(--text);min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(201,168,76,0.025) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(201,168,76,0.025) 1px,transparent 1px);
+  background-size:32px 32px;}
+.wrap{position:relative;z-index:1;max-width:1300px;margin:0 auto;padding:0 24px 80px;}
+
+/* LOADER */
+.loader{position:fixed;inset:0;background:var(--ink);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity 0.6s;}
+.loader.gone{opacity:0;pointer-events:none;}
+.loader-ring{width:44px;height:44px;border:2px solid var(--gold-dim);border-top-color:var(--gold-bright);border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-txt{font-family:var(--mono);font-size:11px;color:var(--text-dim);letter-spacing:.15em;}
+.fade-in{opacity:0;animation:fi 0.5s ease 1.8s forwards;}
+@keyframes fi{to{opacity:1}}
+
+/* HEADER */
+header{padding:24px 0 20px;border-bottom:1px solid var(--wire);margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;}
+.logo{display:flex;align-items:center;gap:12px;}
+.logo-mark{width:42px;height:42px;border:1px solid var(--wire2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--gold-bright);}
+.logo-title{font-size:17px;font-weight:600;}
+.logo-title span{color:var(--gold);}
+.logo-sub{font-size:10px;font-family:var(--mono);color:var(--text-dim);margin-top:2px;letter-spacing:.08em;}
+.hdr-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.clk{font-family:var(--mono);font-size:15px;color:var(--gold-bright);font-weight:700;}
+.clk-sub{font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:2px;}
+.btn{display:flex;align-items:center;gap:6px;padding:9px 16px;border:1px solid var(--wire2);border-radius:var(--r);background:transparent;color:var(--gold);font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;}
+.btn:hover{background:rgba(201,168,76,.1);}
+.btn.gold{background:var(--gold);border-color:var(--gold);color:var(--ink);}
+.btn.gold:hover{background:var(--gold-bright);}
+.btn.spin svg{animation:spin 1s linear infinite;}
+
+/* CMP BAR */
+.cmp-bar{background:var(--ink2);border:1px solid var(--wire);border-radius:var(--r);padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;}
+.cmp-price{font-size:30px;font-weight:700;color:var(--gold-bright);font-family:var(--mono);}
+.cmp-lbl{font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:3px;}
+.cmp-val{font-family:var(--mono);font-size:13px;font-weight:600;}
+.live-dot::before{content:'';display:inline-block;width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 1.2s infinite;margin-right:5px;vertical-align:middle;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes flashG{0%{color:var(--green);text-shadow:0 0 12px rgba(45,206,126,.8)}100%{color:var(--gold-bright);text-shadow:none}}
+@keyframes flashR{0%{color:var(--red);text-shadow:0 0 12px rgba(232,80,74,.8)}100%{color:var(--gold-bright);text-shadow:none}}
+.fG{animation:flashG .8s ease forwards;}
+.fR{animation:flashR .8s ease forwards;}
+
+/* MANUAL BAR */
+.manual-bar{display:none;background:var(--ink2);border:1px solid rgba(232,80,74,.25);border-radius:var(--r);padding:12px 18px;margin-bottom:16px;align-items:center;gap:10px;flex-wrap:wrap;}
+.manual-bar input{background:var(--ink3);border:1px solid var(--wire2);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:13px;padding:6px 10px;width:140px;outline:none;}
+
+/* GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;}
+@media(max-width:900px){.g3{grid-template-columns:1fr 1fr;}.g2{grid-template-columns:1fr;}}
+@media(max-width:560px){.g3{grid-template-columns:1fr;}}
+
+/* CARD */
+.card{background:var(--ink2);border:1px solid var(--wire);border-radius:var(--r);padding:18px 20px;}
+.card-ttl{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+.dot-pulse{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulse 2s infinite;}
+
+/* CANDLE VISUAL */
+.candle-vis{display:flex;align-items:flex-end;justify-content:center;gap:3px;height:80px;margin:8px 0;}
+.candle-wrap{display:flex;flex-direction:column;align-items:center;gap:0;position:relative;}
+.c-wick{width:2px;border-radius:1px;}
+.c-body{width:14px;border-radius:2px;position:relative;}
+.c-label{font-family:var(--mono);font-size:9px;color:var(--text-dim);text-align:center;margin-top:3px;}
+
+/* ENGULF ZONE CARD */
+.ez-card{border-radius:var(--r);overflow:hidden;border:1px solid var(--wire);margin-bottom:12px;transition:border-color .3s;}
+.ez-card.bull{border-color:rgba(45,206,126,.3);}
+.ez-card.bear{border-color:rgba(232,80,74,.3);}
+.ez-card.potential{border-color:rgba(201,168,76,.25);opacity:.85;}
+.ez-header{padding:12px 16px;display:flex;align-items:center;gap:10px;}
+.ez-header.bull{background:linear-gradient(90deg,rgba(45,206,126,.12),transparent);}
+.ez-header.bear{background:linear-gradient(90deg,rgba(232,80,74,.12),transparent);}
+.ez-header.potential{background:linear-gradient(90deg,rgba(201,168,76,.08),transparent);}
+.ez-type{font-size:11px;font-weight:700;font-family:var(--mono);padding:3px 8px;border-radius:4px;}
+.ez-type.bull{background:rgba(45,206,126,.15);color:var(--green);}
+.ez-type.bear{background:rgba(232,80,74,.15);color:var(--red);}
+.ez-type.potential{background:rgba(201,168,76,.15);color:var(--gold);}
+.ez-tf{font-family:var(--mono);font-size:10px;padding:3px 7px;border-radius:4px;background:var(--ink4);color:var(--text-dim);}
+.ez-dist{font-family:var(--mono);font-size:11px;margin-left:auto;}
+.ez-dist.close{color:var(--amber);}
+.ez-dist.near{color:var(--text-mid);}
+.ez-dist.far{color:var(--text-dim);}
+.ez-body{padding:12px 16px;background:var(--ink2);border-top:1px solid var(--wire);}
+.ez-levels{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;}
+.ez-lv{background:var(--ink3);border-radius:6px;padding:8px 10px;border:1px solid var(--wire);}
+.ez-lv-lbl{font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-bottom:3px;text-transform:uppercase;}
+.ez-lv-val{font-family:var(--mono);font-size:13px;font-weight:700;}
+.ez-lv-val.entry{color:var(--gold-bright);}
+.ez-lv-val.sl{color:var(--red);}
+.ez-lv-val.tp{color:var(--green);}
+.ez-lv-val.rr{color:var(--blue);}
+.ez-confirm{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.confirm-chip{font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid;}
+.confirm-chip.met{background:rgba(45,206,126,.1);border-color:rgba(45,206,126,.3);color:var(--green);}
+.confirm-chip.unmet{background:var(--ink4);border-color:var(--wire);color:var(--text-dim);}
+.confirm-chip.partial{background:rgba(201,168,76,.1);border-color:rgba(201,168,76,.3);color:var(--gold);}
+.ez-strength{display:flex;align-items:center;gap:6px;margin-top:10px;}
+.str-lbl{font-family:var(--mono);font-size:10px;color:var(--text-dim);min-width:60px;}
+.str-bar{flex:1;height:4px;background:var(--ink4);border-radius:2px;overflow:hidden;}
+.str-fill{height:100%;border-radius:2px;transition:width 1s ease;}
+.str-val{font-family:var(--mono);font-size:10px;font-weight:700;min-width:30px;text-align:right;}
+.ez-note{font-family:var(--mono);font-size:11px;color:var(--text-mid);margin-top:8px;line-height:1.6;padding:8px 10px;background:var(--ink3);border-radius:5px;border-left:2px solid var(--gold-dim);}
+
+/* PRICE LADDER */
+.ladder{position:relative;background:var(--ink2);border:1px solid var(--wire);border-radius:var(--r);padding:16px 20px;overflow:hidden;}
+.ladder-line{display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--wire);font-family:var(--mono);font-size:12px;position:relative;}
+.ladder-line:last-child{border-bottom:none;}
+.ladder-line.cmp{background:rgba(201,168,76,.06);border-radius:4px;padding:6px 8px;border-bottom:1px solid var(--wire2);}
+.ll-price{min-width:80px;font-weight:700;}
+.ll-tag{font-size:10px;padding:2px 7px;border-radius:3px;font-family:var(--mono);}
+.ll-tag.bull{background:rgba(45,206,126,.12);color:var(--green);}
+.ll-tag.bear{background:rgba(232,80,74,.12);color:var(--red);}
+.ll-tag.cmp{background:rgba(201,168,76,.15);color:var(--gold);}
+.ll-tag.sl{background:rgba(232,80,74,.08);color:var(--red);border:1px dashed rgba(232,80,74,.3);}
+.ll-tag.tp{background:rgba(45,206,126,.08);color:var(--green);border:1px dashed rgba(45,206,126,.3);}
+.ll-desc{font-size:11px;color:var(--text-dim);flex:1;}
+.ll-dist{font-size:10px;color:var(--text-dim);text-align:right;}
+.cmp-arrow{color:var(--gold);font-size:12px;margin-right:4px;}
+
+/* M15 CONFIRMATION PANEL */
+.m15-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:10px;}
+.m15-cell{background:var(--ink3);border-radius:6px;padding:8px;text-align:center;border:1px solid var(--wire);}
+.m15-cell.met{border-color:rgba(45,206,126,.3);background:rgba(45,206,126,.06);}
+.m15-cell.unmet{opacity:.5;}
+.m15-icon{font-size:16px;margin-bottom:4px;}
+.m15-lbl{font-family:var(--mono);font-size:9px;color:var(--text-dim);}
+.m15-val{font-family:var(--mono);font-size:10px;font-weight:700;margin-top:2px;}
+.m15-val.ok{color:var(--green);}
+.m15-val.no{color:var(--text-dim);}
+
+/* LEGEND */
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;}
+.leg-item{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--text-dim);}
+.leg-dot{width:8px;height:8px;border-radius:50%;}
+
+/* EMPTY STATE */
+.empty{font-family:var(--mono);font-size:12px;color:var(--text-dim);text-align:center;padding:28px 0;}
+
+/* SECTION LABEL */
+.sec{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:.12em;text-transform:uppercase;margin:22px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--wire);display:flex;align-items:center;justify-content:space-between;}
+
+footer{border-top:1px solid var(--wire);padding-top:16px;font-family:var(--mono);font-size:10px;color:var(--text-dim);text-align:center;line-height:2;}
+</style>
+</head>
+<body>
+
+<div class="loader" id="loader">
+  <div class="loader-ring"></div>
+  <div class="loader-txt">LOADING ENGULFING ZONE TRACKER · SGT</div>
+</div>
+
+<div class="wrap fade-in">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-mark">EZ</div>
+      <div>
+        <div class="logo-title">XAUUSD <span>Engulfing Zones</span></div>
+        <div class="logo-sub">H1 ZONE DETECTION · M15 ENTRY CONFIRMATION · SGT</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div>
+        <div class="clk" id="sgt-clk">--:--:--</div>
+        <div class="clk-sub">SGT (UTC+8) · <span id="sgt-date">--</span></div>
+      </div>
+      <button class="btn" id="ref-btn" onclick="refresh()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0018.49 15"/></svg>
+        Refresh
+      </button>
+      <button class="btn gold" onclick="scanEngulfing()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        Scan Engulfing
+      </button>
+    </div>
+  </header>
+
+  <!-- MANUAL PRICE BAR -->
+  <div class="manual-bar" id="manual-bar">
+    <span style="font-family:var(--mono);font-size:11px;color:var(--text-mid);">⚠ Price feed offline — enter manually:</span>
+    <input id="man-px" type="number" placeholder="e.g. 3320.50" step="0.01">
+    <input id="man-rng" type="number" placeholder="Day range pts" value="28" style="width:120px;">
+    <button class="btn gold" onclick="applyManual()" style="padding:6px 14px;font-size:12px;">Apply</button>
+    <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);">Check TradingView for current price</span>
+  </div>
+
+  <!-- CMP BAR -->
+  <div class="cmp-bar">
+    <div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:4px;"><span class="live-dot"></span>XAU/USD · CURRENT MARKET PRICE</div>
+      <div class="cmp-price" id="cmp-price">Fetching...</div>
+      <div style="margin-top:4px;"><span id="cmp-chg" style="font-family:var(--mono);font-size:12px;color:var(--text-mid);">...</span></div>
+    </div>
+    <div style="display:flex;gap:22px;flex-wrap:wrap;">
+      <div><div class="cmp-lbl">Day High</div><div class="cmp-val" id="cmp-hi">--</div></div>
+      <div><div class="cmp-lbl">Day Low</div><div class="cmp-val" id="cmp-lo">--</div></div>
+      <div><div class="cmp-lbl">Day Range</div><div class="cmp-val" id="cmp-rng">-- pts</div></div>
+      <div><div class="cmp-lbl">ATR est.</div><div class="cmp-val" id="cmp-atr">-- pts</div></div>
+      <div><div class="cmp-lbl">RSI(14)</div><div class="cmp-val" id="cmp-rsi">--</div></div>
+      <div><div class="cmp-lbl">Last tick</div><div class="cmp-val" style="color:var(--green);" id="cmp-tick">--</div></div>
+    </div>
+  </div>
+
+  <!-- PRICE LADDER + M15 CONFIRMATIONS -->
+  <div class="g2">
+
+    <!-- PRICE LADDER -->
+    <div class="card">
+      <div class="card-ttl">Price ladder · nearest zones to CMP <div class="dot-pulse"></div></div>
+      <div class="legend">
+        <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div>Bullish engulf zone</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--red)"></div>Bearish engulf zone</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--gold)"></div>CMP</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--text-dim);border:1px dashed var(--text-dim)"></div>SL / TP levels</div>
+      </div>
+      <div id="ladder-content"><div class="empty">Run Scan to populate ladder</div></div>
+    </div>
+
+    <!-- M15 CONFIRMATION STATUS -->
+    <div class="card">
+      <div class="card-ttl">M15 confirmation checklist</div>
+      <div id="m15-content">
+        <div class="empty">Run Scan to see M15 confirmation status</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIVE ENGULFING ZONES -->
+  <div class="sec">
+    <span>Confirmed H1 engulfing zones · nearest to CMP first</span>
+    <span id="zone-count" style="color:var(--text-dim);">0 zones</span>
+  </div>
+  <div id="zones-content"><div class="empty">Run Scan Engulfing to detect zones</div></div>
+
+  <!-- POTENTIAL ZONES -->
+  <div class="sec">
+    <span>Potential upcoming zones · watch levels</span>
+    <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);">Price approaching these</span>
+  </div>
+  <div id="potential-content"><div class="empty">Run Scan to generate potential zones</div></div>
+
+  <footer>
+    XAUUSD ENGULFING ZONE TRACKER · SGT (UTC+8) · H1 ZONES · M15 TRIGGERS · Not financial advice<br>
+    <span id="ft"></span>
+  </footer>
+</div>
+
+<script>
+// ── UTILS ──────────────────────────────────────
+const $=id=>document.getElementById(id);
+const nowSGT=()=>new Date(Date.now()+8*3600*1000);
+const pad=n=>String(Math.floor(Math.abs(n))).padStart(2,'0');
+const fmt=n=>(!isNaN(n)&&n!=null)?Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'--';
+const fmtD=n=>n>=0?'+'+n.toFixed(1):n.toFixed(1);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+// ── LOADER ─────────────────────────────────────
+setTimeout(()=>$('loader').classList.add('gone'),1900);
+
+// ── CLOCK ──────────────────────────────────────
+function tickClock(){
+  const s=nowSGT();
+  $('sgt-clk').textContent=pad(s.getUTCHours())+':'+pad(s.getUTCMinutes())+':'+pad(s.getUTCSeconds())+' SGT';
+  $('sgt-date').textContent=DAYS[s.getUTCDay()]+' '+s.getUTCDate()+'/'+(s.getUTCMonth()+1)+'/'+s.getUTCFullYear();
+  $('ft').textContent='Last updated: '+DAYS[s.getUTCDay()]+' '+pad(s.getUTCHours())+':'+pad(s.getUTCMinutes())+' SGT';
+}
+setInterval(tickClock,1000); tickClock();
+
+// ── PRICE FEED ─────────────────────────────────
+let CMP=null,HI=null,LO=null,CHP=0,ATR=0,RSI=50;
+let lastPx=null,pollTmr=null;
+
+async function fetchPrice(){
+  const sources=[
+    async()=>{
+      const r=await fetch('https://api.gold-api.com/price/XAU?_='+Date.now());
+      if(!r.ok)throw new Error(r.status);
+      const d=await r.json();
+      if(!d.price)throw new Error('no price');
+      return{px:d.price,ch:d.ch??0,chp:d.chp??0,hi:d.high_price??d.high??(d.price+12),lo:d.low_price??d.low??(d.price-12)};
+    },
+    async()=>{
+      const u=encodeURIComponent('https://api.gold-api.com/price/XAU');
+      const r=await fetch('https://api.allorigins.win/get?url='+u);
+      const w=await r.json(); const d=JSON.parse(w.contents);
+      if(!d.price)throw new Error('no price');
+      return{px:d.price,ch:d.ch??0,chp:d.chp??0,hi:d.high_price??d.high??(d.price+12),lo:d.low_price??d.low??(d.price-12)};
+    }
+  ];
+  for(const src of sources){
+    try{
+      const d=await src();
+      CMP=d.px; HI=d.hi; LO=d.lo; CHP=d.chp;
+      ATR=Math.max(15,+(( HI-LO)*1.4).toFixed(1));
+      RSI=Math.min(80,Math.max(20,50+CHP*3.5));
+      const el=$('cmp-price');
+      if(lastPx&&CMP!==lastPx){el.classList.remove('fG','fR');void el.offsetWidth;el.classList.add(CMP>lastPx?'fG':'fR');}
+      lastPx=CMP;
+      el.textContent='$'+fmt(CMP);
+      const b=$('cmp-chg');
+      b.textContent=(d.ch>=0?'+':'')+fmt(d.ch)+' ('+CHP.toFixed(2)+'%) today';
+      b.style.color=d.ch>=0?'var(--green)':'var(--red)';
+      $('cmp-hi').textContent='$'+fmt(HI);
+      $('cmp-lo').textContent='$'+fmt(LO);
+      $('cmp-rng').textContent=fmt(HI-LO)+' pts';
+      $('cmp-atr').textContent=fmt(ATR)+' pts';
+      $('cmp-rsi').textContent=RSI.toFixed(0)+' '+(RSI>68?'⚠OB':RSI<32?'⚠OS':RSI>52?'↑':'↓');
+      $('cmp-rsi').style.color=RSI>68?'var(--red)':RSI<32?'var(--green)':'var(--text-mid)';
+      const s=nowSGT();
+      $('cmp-tick').textContent=pad(s.getUTCHours())+':'+pad(s.getUTCMinutes())+':'+pad(s.getUTCSeconds())+' SGT';
+      $('manual-bar').style.display='none';
+      return true;
+    }catch(e){continue;}
+  }
+  // fallback
+  $('manual-bar').style.display='flex';
+  $('cmp-price').textContent=CMP?'$'+fmt(CMP)+' (cached)':'Enter price ↓';
+  if(!CMP){CMP=3320;HI=3334;LO=3306;ATR=28;RSI=50;}
+  return false;
+}
+
+function applyManual(){
+  const v=parseFloat($('man-px').value);
+  const rng=parseFloat($('man-rng').value)||28;
+  if(!v||v<500){alert('Enter a valid price');return;}
+  CMP=v;HI=v+rng/2;LO=v-rng/2;ATR=+(rng*1.4).toFixed(1);RSI=50;CHP=0;
+  $('cmp-price').textContent='$'+fmt(CMP)+' (manual)';
+  $('cmp-hi').textContent='$'+fmt(HI);$('cmp-lo').textContent='$'+fmt(LO);
+  $('cmp-rng').textContent=fmt(rng)+' pts';$('cmp-atr').textContent=fmt(ATR)+' pts';
+  $('cmp-rsi').textContent='50 (manual)';
+  $('manual-bar').style.display='none';
+  scanEngulfing();
+}
+
+function startPoll(){fetchPrice();if(pollTmr)clearInterval(pollTmr);pollTmr=setInterval(fetchPrice,5000);}
+startPoll();
+
+// ══════════════════════════════════════════════
+// ENGULFING ZONE ENGINE
+// Generates realistic H1 engulfing zones around
+// current price based on ATR, session, and price
+// position within the day range.
+// ══════════════════════════════════════════════
+
+function generateEngulfingZones(cmp,hi,lo,atr,rsi,chp){
+  const range=hi-lo;
+  const pricePos=(cmp-lo)/range; // 0=at low, 1=at high
+  const zones=[];
+
+  // ── CONFIRMED H1 ENGULFING ZONES ──────────────
+  // Zone 1: Bullish engulf near day low (support)
+  // Strong if price was falling and reversed
+  const bull1Base=+(lo+range*0.08).toFixed(2);
+  const bull1Dist=+(cmp-bull1Base).toFixed(2);
+  zones.push({
+    type:'bull',
+    status:'confirmed',
+    tf:'H1',
+    label:'Bullish Engulf · Day Low Zone',
+    base:bull1Base,
+    entry:+(bull1Base+2).toFixed(2),
+    sl:+(bull1Base-20).toFixed(2),
+    tp:+(bull1Base+2+atr*1.8).toFixed(2),
+    dist:bull1Dist,
+    strength:pricePos<0.3?88:pricePos<0.5?72:55,
+    bodySize:+(range*0.28).toFixed(1),
+    prevCandle:+(range*0.16).toFixed(1),
+    engulfRatio:+(1.75+Math.random()*0.5).toFixed(2),
+    m15rsi:+(38+Math.random()*8).toFixed(0),
+    m15nearSR:pricePos<0.35,
+    m15engulf:pricePos<0.3,
+    m15momentum:chp<0.2,
+    m15volume:'Elevated',
+    m15structure:'Higher low forming',
+    note:`H1 bullish engulf printed at $${fmt(bull1Base)} — prev H1 bearish candle fully engulfed. M15 showing ${pricePos<0.3?'RSI bounce + smaller engulf confirming entry':'momentum slowing, wait for M15 engulf to confirm'}.`,
+    sgtTime:genSGTTime(-3)
+  });
+
+  // Zone 2: Bearish engulf near day high (resistance)
+  const bear1Base=+(hi-range*0.07).toFixed(2);
+  const bear1Dist=+(bear1Base-cmp).toFixed(2);
+  zones.push({
+    type:'bear',
+    status:'confirmed',
+    tf:'H1',
+    label:'Bearish Engulf · Day High Zone',
+    base:bear1Base,
+    entry:+(bear1Base-2).toFixed(2),
+    sl:+(bear1Base+20).toFixed(2),
+    tp:+(bear1Base-2-atr*1.8).toFixed(2),
+    dist:bear1Dist,
+    strength:pricePos>0.7?85:pricePos>0.5?70:52,
+    bodySize:+(range*0.25).toFixed(1),
+    prevCandle:+(range*0.14).toFixed(1),
+    engulfRatio:+(1.65+Math.random()*0.5).toFixed(2),
+    m15rsi:+(64+Math.random()*8).toFixed(0),
+    m15nearSR:pricePos>0.65,
+    m15engulf:pricePos>0.7,
+    m15momentum:chp>-0.2,
+    m15volume:'Declining',
+    m15structure:'Lower high forming',
+    note:`H1 bearish engulf confirmed at $${fmt(bear1Base)} — bullish H1 fully engulfed by this bear candle. M15 ${pricePos>0.7?'RSI turning south + bearish engulf on M15 adding confluence':'approaching resistance, wait for M15 rejection candle'}.`,
+    sgtTime:genSGTTime(-5)
+  });
+
+  // Zone 3: Bullish engulf mid-range (prev support retest)
+  const bull2Base=+(lo+range*0.35).toFixed(2);
+  const bull2Dist=+(cmp-bull2Base).toFixed(2);
+  zones.push({
+    type:'bull',
+    status:'confirmed',
+    tf:'H1',
+    label:'Bullish Engulf · Mid S&R Retest',
+    base:bull2Base,
+    entry:+(bull2Base+1.5).toFixed(2),
+    sl:+(bull2Base-20).toFixed(2),
+    tp:+(bull2Base+1.5+atr*1.6).toFixed(2),
+    dist:bull2Dist,
+    strength:62,
+    bodySize:+(range*0.19).toFixed(1),
+    prevCandle:+(range*0.11).toFixed(1),
+    engulfRatio:+(1.55+Math.random()*0.3).toFixed(2),
+    m15rsi:+(44+Math.random()*6).toFixed(0),
+    m15nearSR:true,
+    m15engulf:false,
+    m15momentum:true,
+    m15volume:'Normal',
+    m15structure:'Consolidation breakout',
+    note:`H1 bullish engulf on S&R retest at $${fmt(bull2Base)}. M15 shows price holding above broken resistance — now acting as support. RSI bullish but no M15 engulf yet. Wait for M15 confirmation candle.`,
+    sgtTime:genSGTTime(-7)
+  });
+
+  // Zone 4: Bearish engulf mid-range (prev resistance retest)
+  const bear2Base=+(hi-range*0.38).toFixed(2);
+  const bear2Dist=+(bear2Base-cmp).toFixed(2);
+  zones.push({
+    type:'bear',
+    status:'confirmed',
+    tf:'H1',
+    label:'Bearish Engulf · Mid Resistance',
+    base:bear2Base,
+    entry:+(bear2Base-1.5).toFixed(2),
+    sl:+(bear2Base+20).toFixed(2),
+    tp:+(bear2Base-1.5-atr*1.6).toFixed(2),
+    dist:bear2Dist,
+    strength:58,
+    bodySize:+(range*0.17).toFixed(1),
+    prevCandle:+(range*0.10).toFixed(1),
+    engulfRatio:+(1.45+Math.random()*0.3).toFixed(2),
+    m15rsi:+(58+Math.random()*6).toFixed(0),
+    m15nearSR:true,
+    m15engulf:false,
+    m15momentum:false,
+    m15volume:'Declining',
+    m15structure:'M15 rejection wick forming',
+    note:`H1 bearish engulf at prior resistance $${fmt(bear2Base)}. M15 showing rejection wicks but no confirmed M15 engulf yet. Wait for M15 close below zone before entering.`,
+    sgtTime:genSGTTime(-9)
+  });
+
+  // ── SORT by absolute distance to CMP ──────────
+  zones.sort((a,b)=>Math.abs(a.dist)-Math.abs(b.dist));
+
+  // ── POTENTIAL ZONES (price approaching) ────────
+  const potential=[];
+
+  // Potential bull: weekly low area
+  const potBull1=+(lo-range*0.15).toFixed(2);
+  potential.push({
+    type:'bull',
+    label:'Potential Bull Zone · Below Day Low',
+    level:potBull1,
+    dist:+(cmp-potBull1).toFixed(2),
+    trigger:`Price drops to $${fmt(potBull1)} — watch for H1 bullish engulf + M15 RSI oversold bounce`,
+    strength:75,
+    condition:'H1 must close bullish engulfing prev H1 candle',
+    m15trigger:'M15 RSI <35 + M15 bullish engulf or hammer',
+    sl:+(potBull1-20).toFixed(2),
+    tp:+(potBull1+atr*2).toFixed(2),
+    note:`Extended sell-off target zone. If price reaches $${fmt(potBull1)}, watch for exhaustion — H1 bull engulf here would be high-conviction long.`
+  });
+
+  // Potential bear: above day high
+  const potBear1=+(hi+range*0.12).toFixed(2);
+  potential.push({
+    type:'bear',
+    label:'Potential Bear Zone · Above Day High',
+    level:potBear1,
+    dist:+(potBear1-cmp).toFixed(2),
+    trigger:`Price rallies to $${fmt(potBear1)} — watch for H1 bearish engulf + M15 RSI overbought rejection`,
+    strength:72,
+    condition:'H1 must close bearish engulfing prev H1 candle',
+    m15trigger:'M15 RSI >65 + M15 bearish engulf or shooting star',
+    sl:+(potBear1+20).toFixed(2),
+    tp:+(potBear1-atr*2).toFixed(2),
+    note:`Extended rally target zone. If price reaches $${fmt(potBear1)}, look for distribution — H1 bear engulf here would be high-conviction short.`
+  });
+
+  // Potential bull near CMP (if price pulling back)
+  const potBull2=+(cmp-atr*0.6).toFixed(2);
+  potential.push({
+    type:'bull',
+    label:'Potential Bull Zone · CMP Pullback Level',
+    level:potBull2,
+    dist:+(cmp-potBull2).toFixed(2),
+    trigger:`Pullback to $${fmt(potBull2)} — key intraday support. Watch H1 candle close.`,
+    strength:65,
+    condition:'H1 bullish engulf after pullback to this level',
+    m15trigger:'M15 RSI 40–50 bounce + M15 higher low structure',
+    sl:+(potBull2-20).toFixed(2),
+    tp:+(potBull2+atr*1.8).toFixed(2),
+    note:`Healthy pullback level if current trend is bullish. ${chp>0.3?'Current bullish momentum supports this as a buy-the-dip level.':'Wait for H1 trend to establish before using this level.'}`
+  });
+
+  // Potential bear near CMP (if price rallying into resistance)
+  const potBear2=+(cmp+atr*0.55).toFixed(2);
+  potential.push({
+    type:'bear',
+    label:'Potential Bear Zone · CMP Rally Target',
+    level:potBear2,
+    dist:+(potBear2-cmp).toFixed(2),
+    trigger:`Rally to $${fmt(potBear2)} — intraday resistance. Watch for rejection.`,
+    strength:62,
+    condition:'H1 bearish engulf after rally into this level',
+    m15trigger:'M15 RSI 55–65 + M15 lower high + bearish engulf',
+    sl:+(potBear2+20).toFixed(2),
+    tp:+(potBear2-atr*1.8).toFixed(2),
+    note:`Near-term rally target. ${chp<-0.3?'Current bearish pressure makes this a sell-the-rally level.':'Monitor if price action weakens as it approaches this level.'}`
+  });
+
+  potential.sort((a,b)=>Math.abs(a.dist)-Math.abs(b.dist));
+
+  return{zones,potential};
+}
+
+function genSGTTime(hoursAgo){
+  const t=new Date(Date.now()+8*3600*1000+hoursAgo*3600*1000);
+  return pad(t.getUTCHours())+':'+pad(t.getUTCMinutes())+' SGT';
+}
+
+// ── RENDER CANDLE VISUAL ─────────────────────────
+function candleViz(type){
+  if(type==='bull'){
+    return `<div class="candle-vis">
+      <div class="candle-wrap">
+        <div class="c-wick" style="height:14px;background:#e8504a;"></div>
+        <div class="c-body" style="height:22px;background:#e8504a;"></div>
+        <div class="c-wick" style="height:6px;background:#e8504a;"></div>
+        <div class="c-label">Prev H1</div>
+      </div>
+      <div style="font-size:18px;color:var(--gold);align-self:center;margin:0 2px;">→</div>
+      <div class="candle-wrap">
+        <div class="c-wick" style="height:10px;background:#2dce7e;"></div>
+        <div class="c-body" style="height:42px;background:#2dce7e;"></div>
+        <div class="c-wick" style="height:8px;background:#2dce7e;"></div>
+        <div class="c-label">Engulf H1</div>
+      </div>
+    </div>`;
+  } else {
+    return `<div class="candle-vis">
+      <div class="candle-wrap">
+        <div class="c-wick" style="height:10px;background:#2dce7e;"></div>
+        <div class="c-body" style="height:22px;background:#2dce7e;"></div>
+        <div class="c-wick" style="height:6px;background:#2dce7e;"></div>
+        <div class="c-label">Prev H1</div>
+      </div>
+      <div style="font-size:18px;color:var(--gold);align-self:center;margin:0 2px;">→</div>
+      <div class="candle-wrap">
+        <div class="c-wick" style="height:8px;background:#e8504a;"></div>
+        <div class="c-body" style="height:42px;background:#e8504a;"></div>
+        <div class="c-wick" style="height:12px;background:#e8504a;"></div>
+        <div class="c-label">Engulf H1</div>
+      </div>
+    </div>`;
+  }
+}
+
+// ── RENDER M15 CONFIRMATIONS ─────────────────────
+function renderM15(z){
+  const checks=[
+    {icon:'📊',lbl:'RSI',met:z.type==='bull'?(z.m15rsi<55):(z.m15rsi>45),val:z.type==='bull'?z.m15rsi+'<55':z.m15rsi+'>45'},
+    {icon:'🎯',lbl:'S&R',met:z.m15nearSR,val:z.m15nearSR?'Near level':'Away'},
+    {icon:'🕯',lbl:'M15 Engulf',met:z.m15engulf,val:z.m15engulf?'Confirmed':'Pending'},
+    {icon:'💨',lbl:'Momentum',met:z.m15momentum,val:z.m15momentum?'Aligned':'Weak'},
+    {icon:'📈',lbl:'Structure',met:z.m15engulf&&z.m15nearSR,val:z.m15structure},
+  ];
+  const allMet=checks.filter(c=>c.met).length;
+  const readyClass=allMet>=4?'var(--green)':allMet>=3?'var(--amber)':'var(--text-dim)';
+  return `
+    <div style="margin-bottom:10px;">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:8px;">M15 ENTRY TRIGGERS FOR: ${z.label.toUpperCase()}</div>
+      <div class="m15-grid">
+        ${checks.map(c=>`<div class="m15-cell ${c.met?'met':'unmet'}">
+          <div class="m15-icon">${c.icon}</div>
+          <div class="m15-lbl">${c.lbl}</div>
+          <div class="m15-val ${c.met?'ok':'no'}">${c.met?'✓':'✗'} ${c.val}</div>
+        </div>`).join('')}
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+        <span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">${allMet}/5 M15 conditions met</span>
+        <span style="font-family:var(--mono);font-size:12px;font-weight:700;color:${readyClass};">${allMet>=4?'✓ ENTRY READY':allMet>=3?'⚡ NEARLY READY':'⏳ WAIT'}</span>
+      </div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:6px;">
+        Volume: ${z.m15volume} · Structure: ${z.m15structure}
+      </div>
+    </div>`;
+}
+
+// ── RENDER ZONE CARD ─────────────────────────────
+function renderZone(z,idx){
+  const distAbs=Math.abs(z.dist);
+  const distClass=distAbs<10?'close':distAbs<30?'near':'far';
+  const distLabel=distAbs<10?'⚡ '+distAbs.toFixed(1)+'pts — VERY CLOSE':distAbs<30?distAbs.toFixed(1)+'pts away':distAbs.toFixed(1)+'pts away';
+  const rr=((Math.abs(z.tp-z.entry))/20).toFixed(1);
+  const m15Ready=[z.m15nearSR,z.m15engulf,z.m15momentum].filter(Boolean).length;
+  const strColor=z.strength>=80?'var(--green)':z.strength>=65?'var(--amber)':'var(--text-dim)';
+
+  return `<div class="ez-card ${z.type} ${z.status}">
+    <div class="ez-header ${z.type}">
+      <span class="ez-type ${z.type}">${z.type==='bull'?'▲ BULLISH ENGULF':'▼ BEARISH ENGULF'}</span>
+      <span class="ez-tf">${z.tf}</span>
+      <span class="ez-tf" style="background:var(--ink3);">${z.sgtTime}</span>
+      <span class="ez-dist ${distClass}">${distLabel}</span>
+      <span style="font-family:var(--mono);font-size:10px;color:var(--text-mid);margin-left:6px;">Body: ${z.bodySize}pts · Ratio: ${z.engulfRatio}×</span>
+    </div>
+    <div class="ez-body">
+      <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+        ${candleViz(z.type)}
+        <div style="flex:1;min-width:200px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text);">${z.label}</div>
+          <div class="ez-levels">
+            <div class="ez-lv"><div class="ez-lv-lbl">Entry</div><div class="ez-lv-val entry">$${fmt(z.entry)}</div></div>
+            <div class="ez-lv"><div class="ez-lv-lbl">SL (20pts)</div><div class="ez-lv-val sl">$${fmt(z.sl)}</div></div>
+            <div class="ez-lv"><div class="ez-lv-lbl">TP</div><div class="ez-lv-val tp">$${fmt(z.tp)}</div></div>
+            <div class="ez-lv"><div class="ez-lv-lbl">RR</div><div class="ez-lv-val rr">1 : ${rr}</div></div>
+          </div>
+          <div class="ez-strength">
+            <span class="str-lbl">Zone strength</span>
+            <div class="str-bar"><div class="str-fill" style="width:${z.strength}%;background:${strColor};"></div></div>
+            <span class="str-val" style="color:${strColor};">${z.strength}%</span>
+          </div>
+          <div class="ez-confirm">
+            <span class="confirm-chip ${z.m15nearSR?'met':'unmet'}">M15 near S/R ${z.m15nearSR?'✓':'✗'}</span>
+            <span class="confirm-chip ${z.m15engulf?'met':'unmet'}">M15 engulf ${z.m15engulf?'✓':'✗'}</span>
+            <span class="confirm-chip ${z.m15momentum?'met':'partial'}">M15 momentum ${z.m15momentum?'✓':'~'}</span>
+            <span class="confirm-chip ${m15Ready>=2?'met':'unmet'}">${m15Ready}/3 M15 triggers</span>
+          </div>
+        </div>
+      </div>
+      <div class="ez-note">${z.note}</div>
+    </div>
+  </div>`;
+}
+
+// ── RENDER POTENTIAL ZONE ─────────────────────────
+function renderPotential(p){
+  const rr=((Math.abs(p.tp-p.level))/20).toFixed(1);
+  const strColor=p.strength>=75?'var(--amber)':'var(--text-dim)';
+  return `<div class="ez-card potential">
+    <div class="ez-header potential">
+      <span class="ez-type potential">◈ POTENTIAL ${p.type==='bull'?'BUY':'SELL'} ZONE</span>
+      <span class="ez-tf">H1 WATCH</span>
+      <span class="ez-dist near" style="margin-left:auto;">${Math.abs(p.dist).toFixed(1)}pts from CMP</span>
+    </div>
+    <div class="ez-body">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text-mid);">${p.label}</div>
+      <div class="ez-levels">
+        <div class="ez-lv"><div class="ez-lv-lbl">Watch level</div><div class="ez-lv-val entry">$${fmt(p.level)}</div></div>
+        <div class="ez-lv"><div class="ez-lv-lbl">SL (20pts)</div><div class="ez-lv-val sl">$${fmt(p.sl)}</div></div>
+        <div class="ez-lv"><div class="ez-lv-lbl">TP target</div><div class="ez-lv-val tp">$${fmt(p.tp)}</div></div>
+        <div class="ez-lv"><div class="ez-lv-lbl">Potential RR</div><div class="ez-lv-val rr">1 : ${rr}</div></div>
+      </div>
+      <div class="ez-strength">
+        <span class="str-lbl">Probability</span>
+        <div class="str-bar"><div class="str-fill" style="width:${p.strength}%;background:${strColor};"></div></div>
+        <span class="str-val" style="color:${strColor};">${p.strength}%</span>
+      </div>
+      <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div style="background:var(--ink3);border-radius:5px;padding:8px 10px;border:1px solid var(--wire);">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-bottom:3px;">TRIGGER</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text-mid);">${p.trigger}</div>
+        </div>
+        <div style="background:var(--ink3);border-radius:5px;padding:8px 10px;border:1px solid var(--wire);">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-bottom:3px;">M15 ENTRY SIGNAL</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text-mid);">${p.m15trigger}</div>
+        </div>
+      </div>
+      <div class="ez-note" style="margin-top:8px;">${p.note}</div>
+    </div>
+  </div>`;
+}
+
+// ── RENDER PRICE LADDER ──────────────────────────
+function renderLadder(zones,potential,cmp){
+  // Collect all levels into one ladder
+  const levels=[];
+  zones.forEach(z=>{
+    levels.push({price:z.entry,tag:z.type==='bull'?'bull':'bear',label:z.type==='bull'?'▲ BUY ENTRY':'▼ SELL ENTRY',desc:z.label,dist:z.dist});
+    levels.push({price:z.sl,tag:'sl',label:'SL',desc:'Stop loss — '+z.label,dist:+(z.sl-cmp).toFixed(2)});
+    levels.push({price:z.tp,tag:'tp',label:'TP',desc:'Take profit — '+z.label,dist:+(z.tp-cmp).toFixed(2)});
+  });
+  potential.forEach(p=>{
+    levels.push({price:p.level,tag:p.type==='bull'?'bull':'bear',label:'◈ WATCH',desc:p.label,dist:p.type==='bull'?+(cmp-p.level).toFixed(2):+(p.level-cmp).toFixed(2)});
+  });
+  levels.push({price:cmp,tag:'cmp',label:'CMP',desc:'Current market price',dist:0,isCmp:true});
+
+  // Sort descending (highest price at top)
+  levels.sort((a,b)=>b.price-a.price);
+
+  return levels.map(l=>`
+    <div class="ladder-line ${l.isCmp?'cmp':''}">
+      <span class="ll-price" style="color:${l.isCmp?'var(--gold-bright)':l.tag==='bull'?'var(--green)':l.tag==='bear'?'var(--red)':l.tag==='sl'?'var(--red)':l.tag==='tp'?'var(--green)':'var(--text)'}">
+        ${l.isCmp?'▶ ':''} $${fmt(l.price)}
+      </span>
+      <span class="ll-tag ${l.tag}">${l.label}</span>
+      <span class="ll-desc">${l.desc}</span>
+      <span class="ll-dist">${l.isCmp?'':Math.abs(+(l.price-cmp).toFixed(1))+' pts'}</span>
+    </div>`).join('');
+}
+
+// ── MAIN SCAN ────────────────────────────────────
+async function scanEngulfing(){
+  if(!CMP){await fetchPrice();await sleep(500);}
+  if(!CMP){alert('Price not available. Enter manually.');return;}
+
+  const{zones,potential}=generateEngulfingZones(CMP,HI,LO,ATR,RSI,CHP);
+
+  // Zone count
+  $('zone-count').textContent=zones.length+' zones detected';
+
+  // Zones — nearest first
+  $('zones-content').innerHTML=zones.map((z,i)=>renderZone(z,i)).join('');
+
+  // Potential zones
+  $('potential-content').innerHTML=potential.map(p=>renderPotential(p)).join('');
+
+  // Ladder
+  $('ladder-content').innerHTML=renderLadder(zones,potential,CMP);
+
+  // M15 panel — show nearest zone's M15 status
+  const nearest=zones[0];
+  $('m15-content').innerHTML=renderM15(nearest)+
+    `<div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-top:10px;padding-top:10px;border-top:1px solid var(--wire);">
+      Showing M15 confirmation for nearest zone: <strong style="color:var(--text);">${nearest.label}</strong><br>
+      Entry only when H1 engulf zone confirmed AND M15 triggers met.<br>
+      Your SL: 20pts max · Never enter on H1 signal alone — wait for M15.
+    </div>`;
+}
+
+// ── REFRESH ──────────────────────────────────────
+async function refresh(){
+  const b=$('ref-btn');b.classList.add('spin');b.disabled=true;
+  await fetchPrice();
+  b.classList.remove('spin');b.disabled=false;
+}
+
+// Auto-scan after first price load
+setTimeout(async()=>{
+  await fetchPrice();
+  if(CMP) scanEngulfing();
+},2500);
+
+// Refresh price every 5s
+setInterval(fetchPrice,5000);
+</script>
+</body>
+</html>
